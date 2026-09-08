@@ -4,7 +4,9 @@ import {
   InwardTapal,
   OutwardDespatch,
   StaffUser,
+  AdminProfile,
   AppealCase,
+  AuditLogEntry,
 } from './types';
 import {
   safeGetLocalStorage,
@@ -16,6 +18,7 @@ import {
   INITIAL_INWARD,
   INITIAL_OUTWARD,
   INITIAL_STAFF,
+  INITIAL_ADMIN_PROFILE,
 } from './utils/storage';
 import { Header } from './components/Header';
 import { Navigation, ActiveTab } from './components/Navigation';
@@ -28,6 +31,7 @@ import { AppealCasesView } from './components/AppealCasesView';
 import { AdminView } from './components/AdminView';
 import { DEFAULT_SADABAINAMA_ABSTRACT, DEFAULT_SADABAINAMA_REPORT } from './data/sadabainamaData';
 import { INITIAL_APPEAL_CASES } from './data/appealCasesData';
+import { INITIAL_AUDIT_LOGS } from './data/initialAuditLogs';
 import { generateOfficialOrderPdf } from './utils/orderPdfGenerator';
 
 // Modals
@@ -55,9 +59,21 @@ export default function App() {
   const [outwards, setOutwards] = useState<OutwardDespatch[]>(() =>
     safeGetLocalStorage('rdo_outward', INITIAL_OUTWARD)
   );
-  const [staff, setStaff] = useState<StaffUser[]>(() =>
-    safeGetLocalStorage('rdo_staff', INITIAL_STAFF)
-  );
+  const [staff, setStaff] = useState<StaffUser[]>(() => {
+    const loaded = safeGetLocalStorage<StaffUser[]>('rdo_staff', INITIAL_STAFF);
+    return loaded.map((s, idx) => ({
+      ...s,
+      phone: s.phone || (INITIAL_STAFF.find((is) => is.id === s.id)?.phone || `949012345${idx + 1}`),
+      password: s.password || 'staff',
+    }));
+  });
+  const [adminProfile, setAdminProfile] = useState<AdminProfile>(() => {
+    const loaded = safeGetLocalStorage<AdminProfile>('rdo_admin_profile', INITIAL_ADMIN_PROFILE);
+    return {
+      ...INITIAL_ADMIN_PROFILE,
+      ...loaded,
+    };
+  });
   const [sadabainamaAbstract, setSadabainamaAbstract] = useState<any[][] | null>(() =>
     safeGetLocalStorage('rdo_sadabainama_abstract', DEFAULT_SADABAINAMA_ABSTRACT)
   );
@@ -66,6 +82,9 @@ export default function App() {
   );
   const [appealCases, setAppealCases] = useState<AppealCase[]>(() =>
     safeGetLocalStorage('rdo_appeal_cases', INITIAL_APPEAL_CASES)
+  );
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() =>
+    safeGetLocalStorage('rdo_audit_logs', INITIAL_AUDIT_LOGS)
   );
 
   const [currentUser, setCurrentUser] = useState<StaffUser | null>(null);
@@ -160,11 +179,60 @@ export default function App() {
     }
   };
 
+  // Activity & File Audit Logger
+  const logActivity = (
+    module: 'Bhu Bharati' | 'Tapal Inward' | 'Tapal Outward' | 'Appeal Cases' | 'Sadabainama',
+    recordId: string,
+    actionType: 'ENTRY' | 'EDIT' | 'STATUS_CHANGE' | 'DELETE' | 'ORDER_UPLOAD',
+    details: string
+  ) => {
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+    const formattedTime = now.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+    const timestamp = `${formattedDate}, ${formattedTime}`;
+
+    const performedBy = currentUser
+      ? `${currentUser.name} (${currentUser.cadre || currentUser.role})`
+      : 'Desk Officer (Staff)';
+    const userRole = currentUser?.role || 'STAFF';
+
+    const newLog: AuditLogEntry = {
+      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp,
+      module,
+      recordId,
+      actionType,
+      performedBy,
+      userRole,
+      details,
+    };
+
+    setAuditLogs((prev) => {
+      const updated = [newLog, ...prev];
+      safeSaveLocalStorage('rdo_audit_logs', updated);
+      return updated;
+    });
+  };
+
   // Bhu Bharati File Handlers
   const handleSaveFile = (newFile: BhuFile) => {
     const updated = [newFile, ...files];
     setFiles(updated);
     safeSaveLocalStorage('rdo_files', updated);
+    logActivity(
+      'Bhu Bharati',
+      newFile.appNumber,
+      'ENTRY',
+      `New Bhu Bharati file registered for ${newFile.applicantName}, Village: ${newFile.village}, Mandal: ${newFile.mandal}, Module: ${newFile.module}.`
+    );
   };
 
   const handleUpdateFileStatus = (file: BhuFile) => {
@@ -176,6 +244,12 @@ export default function App() {
     const updated = files.map((f) => (f.id === updatedFile.id ? updatedFile : f));
     setFiles(updated);
     safeSaveLocalStorage('rdo_files', updated);
+    logActivity(
+      'Bhu Bharati',
+      updatedFile.appNumber,
+      'STATUS_CHANGE',
+      `Status updated to "${updatedFile.status}". Remarks: ${updatedFile.remarks || 'Scrutiny updated'}.`
+    );
   };
 
   const handleSwitchToStatusFromModal = (fileId: number) => {
@@ -209,6 +283,10 @@ export default function App() {
   };
 
   const handleDeleteBhuFilePrompt = (file: BhuFile) => {
+    if (currentUser?.role !== 'ADMIN') {
+      showToast('⚠️ Access restricted: Only Administrator can delete records.');
+      return;
+    }
     setDeleteModalTitle('📂 Bhu Bharati File Record');
     setDeleteModalDetails(
       <div className="space-y-1">
@@ -224,6 +302,12 @@ export default function App() {
       const updated = files.filter((f) => f.id !== file.id);
       setFiles(updated);
       safeSaveLocalStorage('rdo_files', updated);
+      logActivity(
+        'Bhu Bharati',
+        file.appNumber,
+        'DELETE',
+        `File record deleted for applicant ${file.applicantName} (${file.appNumber}).`
+      );
       showToast(`Bhu Bharati file record (${file.appNumber}) deleted successfully.`);
     });
     setIsDeleteModalOpen(true);
@@ -234,6 +318,12 @@ export default function App() {
     const updated = [newTapal, ...inwards];
     setInwards(updated);
     safeSaveLocalStorage('rdo_inward_tapal', updated);
+    logActivity(
+      'Tapal Inward',
+      newTapal.inwardNo,
+      'ENTRY',
+      `New Inward Tapal received from ${newTapal.sender} (${newTapal.mandal || 'GENERAL'}). Subject: ${newTapal.subject}.`
+    );
   };
 
   const handleUpdateInwardStatus = (tapal: InwardTapal) => {
@@ -245,6 +335,12 @@ export default function App() {
     const updated = inwards.map((t) => (t.id === updatedTapal.id ? updatedTapal : t));
     setInwards(updated);
     safeSaveLocalStorage('rdo_inward_tapal', updated);
+    logActivity(
+      'Tapal Inward',
+      updatedTapal.inwardNo,
+      'STATUS_CHANGE',
+      `Inward Tapal status updated to "${updatedTapal.status}". Assigned seat: ${updatedTapal.seat || 'D Section'}.`
+    );
   };
 
   const handleViewInwardPdf = async (tapal: InwardTapal) => {
@@ -266,6 +362,10 @@ export default function App() {
   };
 
   const handleDeleteInwardPrompt = (tapal: InwardTapal) => {
+    if (currentUser?.role !== 'ADMIN') {
+      showToast('⚠️ Access restricted: Only Administrator can delete records.');
+      return;
+    }
     setDeleteModalTitle('📬 Inward Tapal Record');
     setDeleteModalDetails(
       <div className="space-y-1">
@@ -279,6 +379,12 @@ export default function App() {
       const updated = inwards.filter((t) => t.id !== tapal.id);
       setInwards(updated);
       safeSaveLocalStorage('rdo_inward_tapal', updated);
+      logActivity(
+        'Tapal Inward',
+        tapal.inwardNo,
+        'DELETE',
+        `Inward Tapal #${tapal.inwardNo} from ${tapal.sender} deleted.`
+      );
       showToast(`Inward Tapal (${tapal.inwardNo}) deleted successfully.`);
     });
     setIsDeleteModalOpen(true);
@@ -297,6 +403,12 @@ export default function App() {
     const updatedOutwards = [newOutward, ...outwards];
     setOutwards(updatedOutwards);
     safeSaveLocalStorage('rdo_outward', updatedOutwards);
+    logActivity(
+      'Tapal Outward',
+      newOutward.outwardNo,
+      'ENTRY',
+      `Official outward correspondence dispatched to ${newOutward.sentTo} via ${newOutward.mode}. Subject: ${newOutward.subject}.`
+    );
 
     if (shouldDisposeInwardId) {
       const updatedInwards = inwards.map((t) =>
@@ -326,6 +438,10 @@ export default function App() {
   };
 
   const handleDeleteOutwardPrompt = (outward: OutwardDespatch) => {
+    if (currentUser?.role !== 'ADMIN') {
+      showToast('⚠️ Access restricted: Only Administrator can delete records.');
+      return;
+    }
     setDeleteModalTitle('📤 Outward Despatch Record');
     setDeleteModalDetails(
       <div className="space-y-1">
@@ -339,6 +455,12 @@ export default function App() {
       const updated = outwards.filter((o) => o.id !== outward.id);
       setOutwards(updated);
       safeSaveLocalStorage('rdo_outward', updated);
+      logActivity(
+        'Tapal Outward',
+        outward.outwardNo,
+        'DELETE',
+        `Outward despatch #${outward.outwardNo} to ${outward.sentTo} deleted.`
+      );
       showToast(`Outward Despatch (${outward.outwardNo}) deleted successfully.`);
     });
     setIsDeleteModalOpen(true);
@@ -356,6 +478,12 @@ export default function App() {
     const updated = [caseToSave, ...appealCases.filter((c) => c.id !== newCase.id)];
     setAppealCases(updated);
     safeSaveLocalStorage('rdo_appeal_cases', updated);
+    logActivity(
+      'Appeal Cases',
+      newCase.caseNo,
+      rawFileString ? 'ORDER_UPLOAD' : 'ENTRY',
+      `Appeal Case filed: ${newCase.appellantName} vs ${newCase.respondentName}. Type: ${newCase.appealType}, Village: ${newCase.village}.`
+    );
     showToast(`Appeal Case ${newCase.caseNo} registered successfully.`);
   };
 
@@ -370,10 +498,20 @@ export default function App() {
     const updated = appealCases.map((c) => (c.id === updatedCase.id ? caseToSave : c));
     setAppealCases(updated);
     safeSaveLocalStorage('rdo_appeal_cases', updated);
+    logActivity(
+      'Appeal Cases',
+      updatedCase.caseNo,
+      rawFileString ? 'ORDER_UPLOAD' : 'EDIT',
+      `Appeal Case updated. Status: ${updatedCase.status}. Next Hearing: ${updatedCase.nextHearingDate || 'Disposed'}. Remarks: ${updatedCase.remarks || 'Case proceedings recorded'}.`
+    );
     showToast(`Appeal Case ${updatedCase.caseNo} updated successfully.`);
   };
 
   const handleDeleteAppealCasePrompt = (appealCase: AppealCase) => {
+    if (currentUser?.role !== 'ADMIN') {
+      showToast('⚠️ Access restricted: Only Administrator can delete records.');
+      return;
+    }
     setDeleteModalTitle('⚖️ Appeal Case Record');
     setDeleteModalDetails(
       <div className="space-y-1">
@@ -387,6 +525,12 @@ export default function App() {
       const updated = appealCases.filter((c) => c.id !== appealCase.id);
       setAppealCases(updated);
       safeSaveLocalStorage('rdo_appeal_cases', updated);
+      logActivity(
+        'Appeal Cases',
+        appealCase.caseNo,
+        'DELETE',
+        `Appeal Case #${appealCase.caseNo} (${appealCase.appellantName}) deleted.`
+      );
       showToast(`Appeal Case (${appealCase.caseNo}) deleted successfully.`);
     });
     setIsDeleteModalOpen(true);
@@ -444,6 +588,40 @@ export default function App() {
     safeSaveLocalStorage('rdo_staff', updated);
   };
 
+  const handleUpdateStaff = (updatedMember: StaffUser) => {
+    const updated = staff.map((u) => (u.id === updatedMember.id ? updatedMember : u));
+    setStaff(updated);
+    safeSaveLocalStorage('rdo_staff', updated);
+    if (currentUser && currentUser.id === updatedMember.id) {
+      setCurrentUser(updatedMember);
+    }
+  };
+
+  const handleDeleteStaff = (staffId: number) => {
+    const updated = staff.filter((u) => u.id !== staffId);
+    setStaff(updated);
+    safeSaveLocalStorage('rdo_staff', updated);
+    if (currentUser && currentUser.id === staffId) {
+      setCurrentUser(null);
+      setActiveTab('dashboardTab');
+    }
+  };
+
+  const handleUpdateAdminProfile = (newProfile: AdminProfile) => {
+    setAdminProfile(newProfile);
+    safeSaveLocalStorage('rdo_admin_profile', newProfile);
+    if (currentUser && currentUser.role === 'ADMIN') {
+      setCurrentUser({
+        id: newProfile.id || 999,
+        name: newProfile.name,
+        role: 'ADMIN',
+        cadre: newProfile.cadre,
+        phone: newProfile.phone,
+        active: true,
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-100 text-slate-900 font-sans">
       {/* Official Government Header */}
@@ -455,6 +633,7 @@ export default function App() {
           if (activeTab === 'adminTab') setActiveTab('dashboardTab');
           showToast('Signed out.');
         }}
+        onGoHome={() => setActiveTab('dashboardTab')}
       />
 
       {/* Navigation Bar */}
@@ -473,6 +652,8 @@ export default function App() {
             outwards={outwards}
             staff={staff}
             appealCases={appealCases}
+            sadabainamaAbstract={sadabainamaAbstract}
+            currentUser={currentUser}
             onNavigate={handleDashboardNavigate}
             onNewFile={() => setIsFileModalOpen(true)}
             onNewInward={() => setIsInwardModalOpen(true)}
@@ -485,6 +666,7 @@ export default function App() {
           <BhuBharatiView
             files={files}
             initialStatusFilter={bhuInitialStatus}
+            currentUser={currentUser}
             onNewFile={() => setIsFileModalOpen(true)}
             onUpdateStatus={handleUpdateFileStatus}
             onPrintSlip={handlePrintSlip}
@@ -499,6 +681,7 @@ export default function App() {
             outwards={outwards}
             initialInwardStatus={inwardInitialStatus}
             initialOutwardSentTo={outwardInitialSentTo}
+            currentUser={currentUser}
             onNewInward={() => setIsInwardModalOpen(true)}
             onNewOutward={(linkedId) => handleOpenOutward(linkedId)}
             onUpdateInwardStatus={handleUpdateInwardStatus}
@@ -513,6 +696,7 @@ export default function App() {
           <SadabainamaView
             abstractData={sadabainamaAbstract}
             reportData={sadabainamaReport}
+            currentUser={currentUser}
             onUpdateAbstract={setSadabainamaAbstract}
             onUpdateReport={setSadabainamaReport}
             onShowToast={showToast}
@@ -522,6 +706,7 @@ export default function App() {
         {activeTab === 'appealCasesTab' && (
           <AppealCasesView
             appealCases={appealCases}
+            currentUser={currentUser}
             onSaveCase={handleSaveAppealCase}
             onUpdateCase={handleUpdateAppealCase}
             onDeleteCase={handleDeleteAppealCasePrompt}
@@ -534,8 +719,14 @@ export default function App() {
         {activeTab === 'adminTab' && currentUser?.role === 'ADMIN' && (
           <AdminView
             staff={staff}
+            adminProfile={adminProfile}
+            auditLogs={auditLogs}
             onOpenAddUser={() => setIsAddUserModalOpen(true)}
             onToggleUserStatus={handleToggleUserStatus}
+            onUpdateStaff={handleUpdateStaff}
+            onDeleteStaff={handleDeleteStaff}
+            onUpdateAdminProfile={handleUpdateAdminProfile}
+            onShowToast={showToast}
           />
         )}
       </main>
@@ -652,6 +843,7 @@ export default function App() {
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         staff={staff}
+        adminProfile={adminProfile}
         onLogin={setCurrentUser}
         onShowToast={showToast}
       />

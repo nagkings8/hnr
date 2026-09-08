@@ -23,6 +23,9 @@
     </filter>
   </defs>
 
+  <!-- Solid Clean White Background -->
+  <rect width="100%" height="100%" fill="#ffffff" />
+
   <!-- CIRCULAR EMBLEM -->
   <g id="mainEmblem">
     <!-- Outer Rings -->

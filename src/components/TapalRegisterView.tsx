@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { InwardTapal, OutwardDespatch, MANDAL_LIST } from '../types';
-import { Search, RotateCcw, Download, PlusCircle, Send, FileText, RefreshCw, Trash2, Link as LinkIcon, Printer } from 'lucide-react';
+import { InwardTapal, OutwardDespatch, MANDAL_LIST, StaffUser } from '../types';
+import { Search, RotateCcw, Download, PlusCircle, Send, FileText, RefreshCw, Trash2, Link as LinkIcon, Printer, Mail, CheckCircle2, Clock, Building2, Eye } from 'lucide-react';
 import { exportInwardToCSV, exportOutwardToCSV } from '../utils/storage';
 import { printTableReport } from '../utils/printReport';
 
@@ -9,6 +9,7 @@ interface TapalRegisterViewProps {
   outwards: OutwardDespatch[];
   initialInwardStatus?: string;
   initialOutwardSentTo?: string;
+  currentUser?: StaffUser | null;
   onNewInward: () => void;
   onNewOutward: (linkedInwardId?: number) => void;
   onUpdateInwardStatus: (tapal: InwardTapal) => void;
@@ -23,6 +24,7 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
   outwards,
   initialInwardStatus = '',
   initialOutwardSentTo = '',
+  currentUser,
   onNewInward,
   onNewOutward,
   onUpdateInwardStatus,
@@ -31,6 +33,8 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
   onDeleteInward,
   onDeleteOutward,
 }) => {
+  const isAdmin = currentUser?.role === 'ADMIN';
+  const isViewer = !currentUser || currentUser?.role === 'VIEWER';
   // Inward filters
   const [inwardSearch, setInwardSearch] = useState('');
   const [inwardMandal, setInwardMandal] = useState('');
@@ -41,6 +45,23 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
   const [outwardSentTo, setOutwardSentTo] = useState(initialOutwardSentTo);
   const [outwardMode, setOutwardMode] = useState('');
   const [outwardSource, setOutwardSource] = useState('');
+
+  const tapalStats = useMemo(() => {
+    const totalInward = inwards.length;
+    const inwardScrutiny = inwards.filter((i) => i.status === 'Under Scrutiny').length;
+    const inwardDisposed = inwards.filter((i) => i.status === 'Disposed').length;
+    const totalOutward = outwards.length;
+    const outwardCollectorate = outwards.filter((o) => (o.sentTo || '').includes('Collectorate')).length;
+    const outwardMro = outwards.filter((o) => (o.sentTo || '').includes('MRO')).length;
+    return {
+      totalInward,
+      inwardScrutiny,
+      inwardDisposed,
+      totalOutward,
+      outwardCollectorate,
+      outwardMro,
+    };
+  }, [inwards, outwards]);
 
   const filteredInwards = useMemo(() => {
     return inwards.filter((t) => {
@@ -191,6 +212,200 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* ============================================================ */}
+      {/* TOP DASHBOARD BANNER (MATCHING APPEAL CASES STYLE) */}
+      {/* ============================================================ */}
+      <div className="bg-gradient-to-r from-[#0d1d36] via-[#163a69] to-[#0d1d36] text-white p-5 md:p-6 rounded-2xl shadow-xl border-t-2 border-amber-400 relative overflow-hidden">
+        {/* Top ambient glass reflection */}
+        <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-300/60 to-transparent pointer-events-none" />
+        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 -top-10 w-64 h-64 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-600 p-0.5 shadow-lg shadow-amber-950/40 flex items-center justify-center shrink-0">
+              <div className="w-full h-full bg-[#0a1b33] rounded-[14px] flex items-center justify-center text-amber-300">
+                <Mail className="w-6 h-6 md:w-7 md:h-7" />
+              </div>
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 rounded-md shadow-xs">
+                  Tapal Section
+                </span>
+                <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-blue-500/30 text-blue-200 rounded-md border border-blue-400/30">
+                  Inward &amp; Outward Despatch
+                </span>
+                <span className="text-xs font-semibold text-blue-200">
+                  D Section • Revenue Divisional Office, Huzurnagar
+                </span>
+              </div>
+              <h1 className="text-xl md:text-2xl font-black tracking-wide text-white drop-shadow-sm">
+                OFFICIAL TAPAL &amp; CORRESPONDENCE REGISTER
+              </h1>
+              <p className="text-xs text-blue-100 font-medium max-w-3xl">
+                Real-time tracking of Inward Representations, Collectorate References, Tahsildar Enquiries &amp; Outward Despatches
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Stats Pill */}
+          <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/15 shadow-sm">
+            <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0" />
+            <div>
+              <div className="text-[10px] text-blue-200 font-bold uppercase tracking-wider">
+                Inward Tapal Cleared
+              </div>
+              <div className="text-lg font-black text-white leading-none">
+                {tapalStats.inwardDisposed}{' '}
+                <span className="text-xs font-medium text-blue-200">
+                  / {tapalStats.totalInward} Letters Disposed ({tapalStats.totalInward ? Math.round((tapalStats.inwardDisposed / tapalStats.totalInward) * 100) : 0}%)
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* SUMMARY STAT CARDS (5 GLOSSY & COLORFUL CARDS) */}
+      {/* ============================================================ */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        {/* Card 1: Total Inward Tapals */}
+        <div
+          onClick={() => setInwardStatus('')}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 ${
+            inwardStatus === ''
+              ? 'bg-gradient-to-br from-blue-50/90 via-white to-blue-100/40 border-2 border-blue-600 shadow-[0_12px_24px_-6px_rgba(37,99,235,0.3)] ring-2 ring-blue-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-blue-400 hover:shadow-[0_14px_28px_-6px_rgba(37,99,235,0.25)] hover:-translate-y-1.5'
+          }`}
+        >
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-blue-900">
+              Total Inward
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-200">
+              <Mail className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10 text-3xl font-black text-blue-950 group-hover:text-blue-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {tapalStats.totalInward}
+          </div>
+          <p className="relative z-10 text-[11px] text-blue-700 font-semibold mt-0.5">
+            Letters &amp; files received →
+          </p>
+        </div>
+
+        {/* Card 2: Under Scrutiny */}
+        <div
+          onClick={() => setInwardStatus(inwardStatus === 'Under Scrutiny' ? '' : 'Under Scrutiny')}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 ${
+            inwardStatus === 'Under Scrutiny'
+              ? 'bg-gradient-to-br from-amber-50/90 via-white to-amber-100/40 border-2 border-amber-500 shadow-[0_12px_24px_-6px_rgba(217,119,6,0.3)] ring-2 ring-amber-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-amber-400 hover:shadow-[0_14px_28px_-6px_rgba(217,119,6,0.25)] hover:-translate-y-1.5'
+          }`}
+        >
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-amber-800">
+              Under Scrutiny
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors duration-200">
+              <Clock className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10 text-3xl font-black text-amber-700 group-hover:text-amber-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {tapalStats.inwardScrutiny}
+          </div>
+          <p className="relative z-10 text-[11px] text-amber-700 font-semibold mt-0.5">
+            Active examination in seat →
+          </p>
+        </div>
+
+        {/* Card 3: Inward Disposed */}
+        <div
+          onClick={() => setInwardStatus(inwardStatus === 'Disposed' ? '' : 'Disposed')}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 ${
+            inwardStatus === 'Disposed'
+              ? 'bg-gradient-to-br from-emerald-50/90 via-white to-emerald-100/40 border-2 border-emerald-600 shadow-[0_12px_24px_-6px_rgba(16,185,129,0.3)] ring-2 ring-emerald-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-emerald-400 hover:shadow-[0_14px_28px_-6px_rgba(16,185,129,0.25)] hover:-translate-y-1.5'
+          }`}
+        >
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800">
+              Inward Disposed
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-200">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10 text-3xl font-black text-emerald-700 group-hover:text-emerald-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {tapalStats.inwardDisposed}
+          </div>
+          <p className="relative z-10 text-[11px] text-emerald-700 font-semibold mt-0.5">
+            Disposed with replies →
+          </p>
+        </div>
+
+        {/* Card 4: Total Outward Despatch */}
+        <div
+          onClick={() => {
+            setOutwardSentTo('');
+            setOutwardMode('');
+            setOutwardSource('');
+          }}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 ${
+            outwardSentTo === ''
+              ? 'bg-gradient-to-br from-purple-50/90 via-white to-purple-100/40 border-2 border-purple-600 shadow-[0_12px_24px_-6px_rgba(147,51,234,0.3)] ring-2 ring-purple-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-purple-400 hover:shadow-[0_14px_28px_-6px_rgba(147,51,234,0.25)] hover:-translate-y-1.5'
+          }`}
+        >
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-purple-800">
+              Outward Despatch
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-200">
+              <Send className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10 text-3xl font-black text-purple-700 group-hover:text-purple-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {tapalStats.totalOutward}
+          </div>
+          <p className="relative z-10 text-[11px] text-purple-700 font-semibold mt-0.5">
+            Official letters sent →
+          </p>
+        </div>
+
+        {/* Card 5: Collectorate & MROs */}
+        <div
+          onClick={() => setOutwardSentTo(outwardSentTo === 'Collectorate' ? '' : 'Collectorate')}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 col-span-2 sm:col-span-1 ${
+            outwardSentTo === 'Collectorate' || outwardSentTo === 'MRO'
+              ? 'bg-gradient-to-br from-teal-50/90 via-white to-teal-100/40 border-2 border-teal-600 shadow-[0_12px_24px_-6px_rgba(20,184,166,0.3)] ring-2 ring-teal-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-teal-400 hover:shadow-[0_14px_28px_-6px_rgba(20,184,166,0.25)] hover:-translate-y-1.5'
+          }`}
+        >
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-teal-800">
+              Collectorate &amp; MRO
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-colors duration-200">
+              <Building2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10 text-3xl font-black text-teal-700 group-hover:text-teal-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {tapalStats.outwardCollectorate + tapalStats.outwardMro}
+          </div>
+          <p className="relative z-10 text-[11px] text-teal-700 font-semibold mt-0.5">
+            {tapalStats.outwardCollectorate} Coll • {tapalStats.outwardMro} MROs →
+          </p>
+        </div>
+      </div>
+
       {/* SECTION 1: INWARD TAPAL REGISTER */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 md:p-6 shadow-xs space-y-4">
         <div className="flex flex-wrap justify-between items-center gap-3 border-b border-slate-100 pb-4">
@@ -201,28 +416,37 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handlePrintInwards}
-              className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-              title="Print Inward Tapal Table"
-            >
-              <Printer className="w-3.5 h-3.5 text-sky-300" />
-              <span>Print Inward Register</span>
-            </button>
-            <button
-              onClick={() => exportInwardToCSV(inwards)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export Inward (CSV)</span>
-            </button>
-            <button
-              onClick={onNewInward}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>New Inward Entry</span>
-            </button>
+            {isViewer ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
+                <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Viewer Mode (Read-Only)</span>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={handlePrintInwards}
+                  className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                  title="Print Inward Tapal Table"
+                >
+                  <Printer className="w-3.5 h-3.5 text-sky-300" />
+                  <span>Print Inward Register</span>
+                </button>
+                <button
+                  onClick={() => exportInwardToCSV(inwards)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export Inward (CSV)</span>
+                </button>
+                <button
+                  onClick={onNewInward}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>New Inward Entry</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -347,28 +571,42 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
                     </td>
                     <td className="py-2.5 px-3 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => onUpdateInwardStatus(tapal)}
-                          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-2 py-1 rounded text-[11px] transition cursor-pointer shadow-xs"
-                          title="Update Status"
-                        >
-                          Update
-                        </button>
-                        <button
-                          onClick={() => onNewOutward(tapal.id)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-2 py-1 rounded text-[11px] inline-flex items-center gap-0.5 transition cursor-pointer shadow-xs"
-                          title="Create Outward Despatch from Inward"
-                        >
-                          <Send className="w-2.5 h-2.5" />
-                          <span>Despatch</span>
-                        </button>
-                        <button
-                          onClick={() => onDeleteInward(tapal)}
-                          className="bg-rose-600 hover:bg-rose-700 text-white font-bold p-1 rounded text-[11px] transition cursor-pointer shadow-xs"
-                          title="Delete Inward Record"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                        {!isViewer && (
+                          <>
+                            <button
+                              onClick={() => onUpdateInwardStatus(tapal)}
+                              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-2 py-1 rounded text-[11px] transition cursor-pointer shadow-xs"
+                              title="Update Status"
+                            >
+                              Update
+                            </button>
+                            <button
+                              onClick={() => onNewOutward(tapal.id)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-2 py-1 rounded text-[11px] inline-flex items-center gap-0.5 transition cursor-pointer shadow-xs"
+                              title="Create Outward Despatch from Inward"
+                            >
+                              <Send className="w-2.5 h-2.5" />
+                              <span>Despatch</span>
+                            </button>
+                          </>
+                        )}
+
+                        {/* Delete Inward: ADMIN ONLY */}
+                        {isAdmin && (
+                          <button
+                            onClick={() => onDeleteInward(tapal)}
+                            className="bg-rose-600 hover:bg-rose-700 text-white font-bold p-1 rounded text-[11px] transition cursor-pointer shadow-xs"
+                            title="Delete Inward Record (Administrator Only)"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+
+                        {isViewer && (
+                          <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            Read-Only
+                          </span>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -389,28 +627,37 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handlePrintOutwards}
-              className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-              title="Print Outward Despatch Table"
-            >
-              <Printer className="w-3.5 h-3.5 text-sky-300" />
-              <span>Print Outward Register</span>
-            </button>
-            <button
-              onClick={() => exportOutwardToCSV(outwards)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export Outward (CSV)</span>
-            </button>
-            <button
-              onClick={() => onNewOutward()}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>Record Outward Despatch</span>
-            </button>
+            {isViewer ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
+                <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Viewer Mode (Read-Only)</span>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={handlePrintOutwards}
+                  className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                  title="Print Outward Despatch Table"
+                >
+                  <Printer className="w-3.5 h-3.5 text-sky-300" />
+                  <span>Print Outward Register</span>
+                </button>
+                <button
+                  onClick={() => exportOutwardToCSV(outwards)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export Outward (CSV)</span>
+                </button>
+                <button
+                  onClick={() => onNewOutward()}
+                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Record Outward Despatch</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -555,13 +802,21 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
                         {o.remarks || '-'}
                       </td>
                       <td className="py-2.5 px-3 text-center">
-                        <button
-                          onClick={() => onDeleteOutward(o)}
-                          className="bg-rose-600 hover:bg-rose-700 text-white font-bold p-1 rounded text-[11px] transition cursor-pointer shadow-xs"
-                          title="Delete Despatch Record"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                        {isAdmin ? (
+                          <button
+                            onClick={() => onDeleteOutward(o)}
+                            className="bg-rose-600 hover:bg-rose-700 text-white font-bold p-1 rounded text-[11px] transition cursor-pointer shadow-xs"
+                            title="Delete Despatch Record (Administrator Only)"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        ) : isViewer ? (
+                          <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            Read-Only
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">-</span>
+                        )}
                       </td>
                     </tr>
                   );

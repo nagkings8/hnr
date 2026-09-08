@@ -1,4 +1,4 @@
-import { BhuFile, InwardTapal, OutwardDespatch, StaffUser } from '../types';
+import { BhuFile, InwardTapal, OutwardDespatch, StaffUser, AdminProfile } from '../types';
 
 const DB_NAME = 'RDO_Huzurnagar_Storage_v1';
 const STORE_NAME = 'documents';
@@ -348,9 +348,19 @@ export const INITIAL_OUTWARD: OutwardDespatch[] = [
   }
 ];
 
+export const INITIAL_ADMIN_PROFILE: AdminProfile = {
+  id: 999,
+  name: 'Administrator (RDO)',
+  role: 'ADMIN',
+  cadre: 'Revenue Divisional Officer / Sub-Collector',
+  phone: '9848012345',
+  password: 'admin',
+  active: true,
+};
+
 export const INITIAL_STAFF: StaffUser[] = [
-  { id: 1, name: 'Rupavath Nagaraju', role: 'STAFF', cadre: 'Typist-cum-Computer Operator', active: true },
-  { id: 2, name: 'Meesala Chaitanya', role: 'STAFF', cadre: 'Record Assistant / Junior Assistant', active: true },
-  { id: 3, name: 'Malothu Nageswara Rao', role: 'STAFF', cadre: 'Senior Assistant / Section Assistant', active: true },
-  { id: 4, name: 'Chityala Jyothi', role: 'STAFF', cadre: 'Hand Hold Person (HHP)', active: true }
+  { id: 1, name: 'Rupavath Nagaraju', role: 'STAFF', cadre: 'Typist-cum-Computer Operator', phone: '9490123451', password: 'staff', active: true },
+  { id: 2, name: 'Meesala Chaitanya', role: 'STAFF', cadre: 'Record Assistant / Junior Assistant', phone: '9490123452', password: 'staff', active: true },
+  { id: 3, name: 'Malothu Nageswara Rao', role: 'STAFF', cadre: 'Senior Assistant / Section Assistant', phone: '9490123453', password: 'staff', active: true },
+  { id: 4, name: 'Chityala Jyothi', role: 'STAFF', cadre: 'Hand Hold Person (HHP)', phone: '9490123454', password: 'staff', active: true }
 ];

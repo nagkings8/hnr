@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { BhuFile } from '../../types';
 import { X, Printer, Download } from 'lucide-react';
+import { RDO_LOGO_BASE64 } from '../../utils/logoBase64';
 
 interface PrintSlipModalProps {
   isOpen: boolean;
@@ -36,7 +37,7 @@ export const PrintSlipModal: React.FC<PrintSlipModalProps> = ({
     }
 
     window
-      .html2canvas(slipRef.current, { scale: 2.2, backgroundColor: '#ffffff' })
+      .html2canvas(slipRef.current, { scale: 2.2, backgroundColor: '#ffffff', useCORS: true, allowTaint: true })
       .then((canvas: HTMLCanvasElement) => {
         const imgData = canvas.toDataURL('image/png');
         const { jsPDF } = window.jspdf;
@@ -88,17 +89,34 @@ export const PrintSlipModal: React.FC<PrintSlipModalProps> = ({
             className="border-2 border-black p-6 bg-white text-black font-sans space-y-4"
             style={{ color: '#000000', backgroundColor: '#ffffff' }}
           >
-            {/* Header */}
-            <div className="text-center border-b-2 border-black pb-3">
-              <h2 className="text-lg font-black uppercase tracking-wide">
-                GOVERNMENT OF TELANGANA
-              </h2>
-              <h3 className="text-sm font-extrabold">
-                REVENUE DIVISIONAL OFFICE, HUZURNAGAR
-              </h3>
-              <p className="text-[11px] font-black tracking-wider text-slate-900 mt-0.5 uppercase">
-                D SECTION – OFFICIAL FILE TRACKING ACKNOWLEDGEMENT SLIP
-              </p>
+            {/* Header with Official RDO Huzurnagar Logo */}
+            <div className="border-b-2 border-black pb-3">
+              <div className="flex items-center justify-between gap-4">
+                <img
+                  src={RDO_LOGO_BASE64}
+                  alt="RDO Office Huzurnagar Logo"
+                  className="w-16 h-16 object-contain shrink-0"
+                />
+                <div className="text-center flex-1">
+                  <h2 className="text-base sm:text-lg font-black uppercase tracking-wide">
+                    GOVERNMENT OF TELANGANA
+                  </h2>
+                  <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">
+                    REVENUE DIVISIONAL OFFICE, HUZURNAGAR
+                  </h3>
+                  <p className="text-[10px] sm:text-[11px] font-black tracking-wider text-slate-800 mt-0.5 uppercase">
+                    D SECTION – OFFICIAL FILE TRACKING ACKNOWLEDGEMENT SLIP
+                  </p>
+                </div>
+                <div className="w-16 flex flex-col items-center justify-center shrink-0 border border-black rounded p-1 text-center bg-slate-50">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-900">
+                    OFFICIAL
+                  </span>
+                  <span className="text-[7.5px] font-bold text-slate-700 leading-tight">
+                    SLIP
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Details Table */}

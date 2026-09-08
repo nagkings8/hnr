@@ -24,7 +24,7 @@ import {
   Eye,
   History
 } from 'lucide-react';
-import { AppealCase, CaseHistoryEntry, MANDAL_LIST, APPEAL_TYPES, APPEAL_STATUSES } from '../types';
+import { AppealCase, CaseHistoryEntry, MANDAL_LIST, APPEAL_TYPES, APPEAL_STATUSES, StaffUser } from '../types';
 import { printTableReport } from '../utils/printReport';
 import { INITIAL_APPEAL_CASES } from '../data/appealCasesData';
 import { AppealCaseModal } from './modals/AppealCaseModal';
@@ -32,6 +32,7 @@ import { UploadFinalOrderModal } from './modals/UploadFinalOrderModal';
 
 interface AppealCasesViewProps {
   appealCases: AppealCase[];
+  currentUser?: StaffUser | null;
   onSaveCase: (caseData: AppealCase, rawFileString?: string) => Promise<void> | void;
   onUpdateCase: (updatedCase: AppealCase, rawFileString?: string) => Promise<void> | void;
   onDeleteCase: (appealCase: AppealCase) => void;
@@ -42,6 +43,7 @@ interface AppealCasesViewProps {
 
 export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
   appealCases,
+  currentUser,
   onSaveCase,
   onUpdateCase,
   onDeleteCase,
@@ -49,6 +51,9 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
   onResetSampleCases,
   onShowToast,
 }) => {
+  const isAdmin = currentUser?.role === 'ADMIN';
+  const isViewer = !currentUser || currentUser?.role === 'VIEWER';
+  const canEditAndPrint = !isViewer;
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMandal, setSelectedMandal] = useState<string>('ALL');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
@@ -881,96 +886,131 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
       {/* SUMMARY STAT CARDS */}
       {/* ============================================================ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        {/* Card 1: Total Appeals */}
         <div
           onClick={() => setSelectedStatusFilter('ALL')}
-          className={`bg-white p-4 rounded-xl border transition cursor-pointer shadow-2xs hover:shadow-xs ${
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 ${
             selectedStatusFilter === 'ALL'
-              ? 'border-blue-600 ring-2 ring-blue-500/20'
-              : 'border-slate-200 hover:border-blue-300'
+              ? 'bg-gradient-to-br from-blue-50/90 via-white to-blue-100/40 border-2 border-blue-600 shadow-[0_12px_24px_-6px_rgba(37,99,235,0.3)] ring-2 ring-blue-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-blue-400 hover:shadow-[0_14px_28px_-6px_rgba(37,99,235,0.25)] hover:-translate-y-1.5'
           }`}
         >
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-extrabold uppercase tracking-wider">Total Appeals</span>
-            <Scale className="w-4 h-4 text-blue-600" />
+          {/* Top specular reflection */}
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-blue-900">Total Appeals</span>
+            <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-200">
+              <Scale className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{stats.total}</div>
-          <p className="text-[11px] text-slate-500 font-medium mt-0.5">All registered cases</p>
-        </div>
-
-        <div
-          onClick={() => setSelectedStatusFilter('FINAL_ORDERS')}
-          className={`bg-white p-4 rounded-xl border transition cursor-pointer shadow-2xs hover:shadow-xs ${
-            selectedStatusFilter === 'FINAL_ORDERS'
-              ? 'border-emerald-600 ring-2 ring-emerald-500/20'
-              : 'border-slate-200 hover:border-emerald-300'
-          }`}
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-800">
-              Final Orders Issued
-            </span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <div className="relative z-10 text-3xl font-black text-blue-950 group-hover:text-blue-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {stats.total}
           </div>
-          <div className="text-2xl font-black text-emerald-700">{stats.finalOrders}</div>
-          <p className="text-[11px] text-emerald-700 font-medium mt-0.5">Disposed with Orders</p>
-        </div>
-
-        <div
-          onClick={() => setSelectedStatusFilter('ALLOWED')}
-          className={`bg-white p-4 rounded-xl border transition cursor-pointer shadow-2xs hover:shadow-xs ${
-            selectedStatusFilter === 'ALLOWED'
-              ? 'border-teal-600 ring-2 ring-teal-500/20'
-              : 'border-slate-200 hover:border-teal-300'
-          }`}
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-teal-800">
-              Allowed (Relief)
-            </span>
-            <Gavel className="w-4 h-4 text-teal-600" />
-          </div>
-          <div className="text-2xl font-black text-teal-700">{stats.allowed}</div>
-          <p className="text-[11px] text-teal-700 font-medium mt-0.5">Appeals Allowed</p>
-        </div>
-
-        <div
-          onClick={() => setSelectedStatusFilter('DISMISSED_REMANDED')}
-          className={`bg-white p-4 rounded-xl border transition cursor-pointer shadow-2xs hover:shadow-xs ${
-            selectedStatusFilter === 'DISMISSED_REMANDED'
-              ? 'border-rose-600 ring-2 ring-rose-500/20'
-              : 'border-slate-200 hover:border-rose-300'
-          }`}
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-rose-800">
-              Dismissed / Remand
-            </span>
-            <AlertCircle className="w-4 h-4 text-rose-600" />
-          </div>
-          <div className="text-2xl font-black text-rose-700">
-            {stats.dismissed + stats.remanded}
-          </div>
-          <p className="text-[11px] text-rose-700 font-medium mt-0.5">
-            {stats.dismissed} Dismissed • {stats.remanded} Remanded
+          <p className="relative z-10 text-[11px] text-blue-700 font-semibold mt-0.5 flex items-center gap-1">
+            All registered cases →
           </p>
         </div>
 
+        {/* Card 2: Final Orders Issued */}
         <div
-          onClick={() => setSelectedStatusFilter('PENDING_STAY')}
-          className={`bg-white p-4 rounded-xl border transition cursor-pointer shadow-2xs hover:shadow-xs col-span-2 sm:col-span-1 ${
-            selectedStatusFilter === 'PENDING_STAY'
-              ? 'border-amber-600 ring-2 ring-amber-500/20'
-              : 'border-slate-200 hover:border-amber-300'
+          onClick={() => setSelectedStatusFilter('FINAL_ORDERS')}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 ${
+            selectedStatusFilter === 'FINAL_ORDERS'
+              ? 'bg-gradient-to-br from-emerald-50/90 via-white to-emerald-100/40 border-2 border-emerald-600 shadow-[0_12px_24px_-6px_rgba(16,185,129,0.3)] ring-2 ring-emerald-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-emerald-400 hover:shadow-[0_14px_28px_-6px_rgba(16,185,129,0.25)] hover:-translate-y-1.5'
           }`}
         >
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-amber-800">
+          {/* Top specular reflection */}
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800">
+              Final Orders Issued
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-200">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10 text-3xl font-black text-emerald-700 group-hover:text-emerald-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {stats.finalOrders}
+          </div>
+          <p className="relative z-10 text-[11px] text-emerald-700 font-semibold mt-0.5">Disposed with Orders →</p>
+        </div>
+
+        {/* Card 3: Allowed (Relief) */}
+        <div
+          onClick={() => setSelectedStatusFilter('ALLOWED')}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 ${
+            selectedStatusFilter === 'ALLOWED'
+              ? 'bg-gradient-to-br from-teal-50/90 via-white to-teal-100/40 border-2 border-teal-600 shadow-[0_12px_24px_-6px_rgba(20,184,166,0.3)] ring-2 ring-teal-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-teal-400 hover:shadow-[0_14px_28px_-6px_rgba(20,184,166,0.25)] hover:-translate-y-1.5'
+          }`}
+        >
+          {/* Top specular reflection */}
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-teal-800">
+              Allowed (Relief)
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-colors duration-200">
+              <Gavel className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10 text-3xl font-black text-teal-700 group-hover:text-teal-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {stats.allowed}
+          </div>
+          <p className="relative z-10 text-[11px] text-teal-700 font-semibold mt-0.5">Appeals Allowed →</p>
+        </div>
+
+        {/* Card 4: Dismissed / Remand */}
+        <div
+          onClick={() => setSelectedStatusFilter('DISMISSED_REMANDED')}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 ${
+            selectedStatusFilter === 'DISMISSED_REMANDED'
+              ? 'bg-gradient-to-br from-rose-50/90 via-white to-rose-100/40 border-2 border-rose-600 shadow-[0_12px_24px_-6px_rgba(244,63,94,0.3)] ring-2 ring-rose-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-rose-400 hover:shadow-[0_14px_28px_-6px_rgba(244,63,94,0.25)] hover:-translate-y-1.5'
+          }`}
+        >
+          {/* Top specular reflection */}
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-rose-800">
+              Dismissed / Remand
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors duration-200">
+              <AlertCircle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10 text-3xl font-black text-rose-700 group-hover:text-rose-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {stats.dismissed + stats.remanded}
+          </div>
+          <p className="relative z-10 text-[11px] text-rose-700 font-semibold mt-0.5">
+            {stats.dismissed} Dismissed • {stats.remanded} Remanded →
+          </p>
+        </div>
+
+        {/* Card 5: Under Hearing / Stay */}
+        <div
+          onClick={() => setSelectedStatusFilter('PENDING_STAY')}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 col-span-2 sm:col-span-1 ${
+            selectedStatusFilter === 'PENDING_STAY'
+              ? 'bg-gradient-to-br from-amber-50/90 via-white to-amber-100/40 border-2 border-amber-500 shadow-[0_12px_24px_-6px_rgba(217,119,6,0.3)] ring-2 ring-amber-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-amber-400 hover:shadow-[0_14px_28px_-6px_rgba(217,119,6,0.25)] hover:-translate-y-1.5'
+          }`}
+        >
+          {/* Top specular reflection */}
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-amber-800">
               Under Hearing / Stay
             </span>
-            <Clock className="w-4 h-4 text-amber-600" />
+            <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors duration-200">
+              <Clock className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-2xl font-black text-amber-700">{stats.pending}</div>
-          <p className="text-[11px] text-amber-700 font-medium mt-0.5">Active hearing cases</p>
+          <div className="relative z-10 text-3xl font-black text-amber-700 group-hover:text-amber-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {stats.pending}
+          </div>
+          <p className="relative z-10 text-[11px] text-amber-700 font-semibold mt-0.5">Active hearing cases →</p>
         </div>
       </div>
 
@@ -1001,67 +1041,80 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => {
-                setCaseToEdit(null);
-                setIsNewModalOpen(true);
-              }}
-              className="bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold px-3.5 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Register New Appeal</span>
-            </button>
+            {isViewer ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
+                <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Viewer Mode (Read-Only)</span>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => {
+                    setCaseToEdit(null);
+                    setIsNewModalOpen(true);
+                  }}
+                  className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-md hover:shadow-lg hover:shadow-blue-600/30 transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer"
+                >
+                  <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none rounded-t-xl" />
+                  <Plus className="w-3.5 h-3.5 relative z-10" />
+                  <span className="relative z-10">Register New Appeal</span>
+                </button>
 
-            <input
-              type="file"
-              ref={excelInputRef}
-              accept=".xls,.xlsx,.csv"
-              className="hidden"
-              onChange={handleExcelUpload}
-            />
-            <button
-              onClick={() => excelInputRef.current?.click()}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
-              title="Upload court cases from Excel"
-            >
-              <Upload className="w-3.5 h-3.5 text-blue-600" />
-              <span>Upload Cases (Excel)</span>
-            </button>
+                <input
+                  type="file"
+                  ref={excelInputRef}
+                  accept=".xls,.xlsx,.csv"
+                  className="hidden"
+                  onChange={handleExcelUpload}
+                />
+                <button
+                  onClick={() => excelInputRef.current?.click()}
+                  className="group relative overflow-hidden bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-xs hover:shadow-md hover:border-slate-400 transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer"
+                  title="Upload court cases from Excel"
+                >
+                  <Upload className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Upload Cases (Excel)</span>
+                </button>
 
-            <button
-              onClick={handlePrintDailyCauseList}
-              className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-              title="Print Daily Bench Cause List under Telangana Bhu Bharati Act"
-            >
-              <Printer className="w-3.5 h-3.5 text-amber-300" />
-              <span>Print Cause List</span>
-            </button>
+                <button
+                  onClick={handlePrintDailyCauseList}
+                  className="group relative overflow-hidden bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-md hover:shadow-lg hover:shadow-slate-900/30 transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer"
+                  title="Print Daily Bench Cause List under Telangana Bhu Bharati Act"
+                >
+                  <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-xl" />
+                  <Printer className="w-3.5 h-3.5 text-amber-300 relative z-10" />
+                  <span className="relative z-10">Print Cause List</span>
+                </button>
 
-            <button
-              onClick={() => handlePrintAllCasesRegister(true)}
-              className="bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-              title="Print Complete Appellate Cases Register with all details"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-sky-300" />
-              <span>Print All Cases ({appealCases.length})</span>
-            </button>
+                <button
+                  onClick={() => handlePrintAllCasesRegister(true)}
+                  className="group relative overflow-hidden bg-gradient-to-r from-blue-900 to-indigo-950 hover:from-blue-800 hover:to-indigo-900 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-md hover:shadow-lg hover:shadow-blue-900/30 transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer"
+                  title="Print Complete Appellate Cases Register with all details"
+                >
+                  <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-xl" />
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-sky-300 relative z-10" />
+                  <span className="relative z-10">Print All Cases ({appealCases.length})</span>
+                </button>
 
-            <button
-              onClick={handleExportCSV}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export CSV</span>
-            </button>
+                <button
+                  onClick={handleExportCSV}
+                  className="group relative overflow-hidden bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-md hover:shadow-lg hover:shadow-emerald-600/30 transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer"
+                >
+                  <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent pointer-events-none rounded-t-xl" />
+                  <Download className="w-3.5 h-3.5 relative z-10" />
+                  <span className="relative z-10">Export CSV</span>
+                </button>
 
-            <button
-              onClick={onResetSampleCases}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 text-xs font-semibold px-2.5 py-2 rounded-lg flex items-center gap-1 transition cursor-pointer"
-              title="Reset to Huzurnagar sample cases"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-              <span>Reset</span>
-            </button>
+                <button
+                  onClick={onResetSampleCases}
+                  className="group relative overflow-hidden bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 text-xs font-semibold px-2.5 py-2 rounded-xl flex items-center gap-1 transition-all duration-200 hover:shadow-sm transform hover:-translate-y-0.5 cursor-pointer"
+                  title="Reset to Huzurnagar sample cases"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Reset</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -1101,56 +1154,61 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
             </select>
 
             {/* Status Tabs */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+            <div className="flex items-center gap-1.5 bg-gradient-to-r from-slate-100 via-slate-150 to-slate-200/90 p-1.5 rounded-xl border border-slate-300/80 shadow-inner">
               <button
                 onClick={() => setSelectedStatusFilter('ALL')}
-                className={`px-2 py-0.5 rounded font-bold transition text-[11px] ${
+                className={`relative overflow-hidden px-3 py-1.5 rounded-lg font-black transition-all duration-200 text-xs cursor-pointer ${
                   selectedStatusFilter === 'ALL'
-                    ? 'bg-white text-blue-900 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 -translate-y-0.5'
+                    : 'text-slate-700 hover:text-blue-700 hover:bg-white/80 hover:shadow-xs hover:-translate-y-0.5'
                 }`}
               >
-                All
+                <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none rounded-t-lg" />
+                <span className="relative z-10">All</span>
               </button>
               <button
                 onClick={() => setSelectedStatusFilter('FINAL_ORDERS')}
-                className={`px-2 py-0.5 rounded font-bold transition text-[11px] ${
+                className={`relative overflow-hidden px-3 py-1.5 rounded-lg font-black transition-all duration-200 text-xs cursor-pointer ${
                   selectedStatusFilter === 'FINAL_ORDERS'
-                    ? 'bg-emerald-700 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/30 -translate-y-0.5'
+                    : 'text-slate-700 hover:text-emerald-700 hover:bg-white/80 hover:shadow-xs hover:-translate-y-0.5'
                 }`}
               >
-                Final Orders
+                <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none rounded-t-lg" />
+                <span className="relative z-10">Final Orders</span>
               </button>
               <button
                 onClick={() => setSelectedStatusFilter('ALLOWED')}
-                className={`px-2 py-0.5 rounded font-bold transition text-[11px] ${
+                className={`relative overflow-hidden px-3 py-1.5 rounded-lg font-black transition-all duration-200 text-xs cursor-pointer ${
                   selectedStatusFilter === 'ALLOWED'
-                    ? 'bg-teal-700 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-teal-600 text-white shadow-md shadow-teal-500/30 -translate-y-0.5'
+                    : 'text-slate-700 hover:text-teal-700 hover:bg-white/80 hover:shadow-xs hover:-translate-y-0.5'
                 }`}
               >
-                Allowed
+                <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none rounded-t-lg" />
+                <span className="relative z-10">Allowed</span>
               </button>
               <button
                 onClick={() => setSelectedStatusFilter('DISMISSED_REMANDED')}
-                className={`px-2 py-0.5 rounded font-bold transition text-[11px] ${
+                className={`relative overflow-hidden px-3 py-1.5 rounded-lg font-black transition-all duration-200 text-xs cursor-pointer ${
                   selectedStatusFilter === 'DISMISSED_REMANDED'
-                    ? 'bg-rose-700 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-rose-600 text-white shadow-md shadow-rose-500/30 -translate-y-0.5'
+                    : 'text-slate-700 hover:text-rose-700 hover:bg-white/80 hover:shadow-xs hover:-translate-y-0.5'
                 }`}
               >
-                Dismissed / Remanded
+                <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none rounded-t-lg" />
+                <span className="relative z-10">Dismissed / Remanded</span>
               </button>
               <button
                 onClick={() => setSelectedStatusFilter('PENDING_STAY')}
-                className={`px-2 py-0.5 rounded font-bold transition text-[11px] ${
+                className={`relative overflow-hidden px-3 py-1.5 rounded-lg font-black transition-all duration-200 text-xs cursor-pointer ${
                   selectedStatusFilter === 'PENDING_STAY'
-                    ? 'bg-amber-700 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30 -translate-y-0.5'
+                    : 'text-slate-700 hover:text-amber-700 hover:bg-white/80 hover:shadow-xs hover:-translate-y-0.5'
                 }`}
               >
-                Under Hearing
+                <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none rounded-t-lg" />
+                <span className="relative z-10">Under Hearing</span>
               </button>
             </div>
           </div>
@@ -1400,58 +1458,77 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
                           <div className="flex flex-col items-center gap-1.5">
                             <button
                               onClick={() => onViewFinalOrder(c)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 shadow-2xs transition cursor-pointer"
+                              className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs hover:shadow-md hover:shadow-blue-600/30 transition-all transform hover:-translate-y-0.5 cursor-pointer"
                               title="View Official Final Order Copy"
                             >
                               <FileText className="w-3.5 h-3.5" />
                               <span>View Order (PDF)</span>
                             </button>
-                            <button
-                              onClick={() => setCaseForOrderUpload(c)}
-                              className="text-[10px] text-blue-600 hover:text-blue-800 hover:underline font-semibold"
-                            >
-                              Replace / Update
-                            </button>
+                            {!isViewer && (
+                              <button
+                                onClick={() => setCaseForOrderUpload(c)}
+                                className="text-[10px] text-blue-600 hover:text-blue-800 hover:underline font-semibold transition hover:scale-105"
+                              >
+                                Replace / Update
+                              </button>
+                            )}
                           </div>
-                        ) : (
+                        ) : !isViewer ? (
                           <button
                             onClick={() => setCaseForOrderUpload(c)}
-                            className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10.5px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer mx-auto"
+                            className="group relative overflow-hidden bg-gradient-to-r from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 text-amber-950 border border-amber-300 text-[10.5px] font-extrabold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all shadow-2xs hover:shadow-sm transform hover:-translate-y-0.5 cursor-pointer mx-auto"
                             title="Upload final order copy for this case"
                           >
-                            <Upload className="w-3 h-3 text-amber-700" />
+                            <Upload className="w-3 h-3 text-amber-800" />
                             <span>Upload Order</span>
                           </button>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 italic">No Order Uploaded</span>
                         )}
                       </td>
 
                       {/* Actions */}
                       <td className="py-3 px-3 border-r border-b border-slate-200 text-center">
                         <div className="flex items-center justify-center gap-1">
+                          {/* Anyone can view case details */}
                           <button
                             onClick={() => setSelectedCaseForDetail(c)}
-                            className="p-1.5 text-slate-500 hover:text-blue-700 rounded-md hover:bg-blue-50 transition"
+                            className="p-1.5 text-slate-500 hover:text-blue-700 rounded-lg hover:bg-blue-100/80 hover:shadow-xs transition-all transform hover:-translate-y-0.5 cursor-pointer"
                             title="View Case Details"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => {
-                              setCaseToEdit(c);
-                              setIsNewModalOpen(true);
-                            }}
-                            className="p-1.5 text-slate-500 hover:text-blue-700 rounded-md hover:bg-blue-50 transition"
-                            title="Edit Case"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => onDeleteCase(c)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-md hover:bg-rose-50 transition"
-                            title="Delete Case"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+
+                          {/* Edit case: Staff and Admin only */}
+                          {!isViewer && (
+                            <button
+                              onClick={() => {
+                                setCaseToEdit(c);
+                                setIsNewModalOpen(true);
+                              }}
+                              className="p-1.5 text-slate-500 hover:text-blue-700 rounded-lg hover:bg-blue-100/80 hover:shadow-xs transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                              title="Edit Case"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+
+                          {/* Delete case: ADMIN ONLY */}
+                          {isAdmin && (
+                            <button
+                              onClick={() => onDeleteCase(c)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-100/80 hover:shadow-xs transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                              title="Delete Case (Administrator Only)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+
+                          {isViewer && (
+                            <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                              Read-Only
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1551,15 +1628,17 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handlePrintSingleCaseSlip(selectedCaseForDetail)}
-                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 text-xs shadow-sm transition cursor-pointer"
-                  title="Print Case Status Slip"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Print Case Sheet</span>
-                </button>
+                {!isViewer && (
+                  <button
+                    type="button"
+                    onClick={() => handlePrintSingleCaseSlip(selectedCaseForDetail)}
+                    className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 text-xs shadow-sm transition cursor-pointer"
+                    title="Print Case Status Slip"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Print Case Sheet</span>
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setSelectedCaseForDetail(null);
@@ -1715,22 +1794,24 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
                     <History className="w-4 h-4 text-amber-400" />
                     <span>Case History &amp; Proceedings Timeline</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddingHearingToCase(!isAddingHearingToCase);
-                      setQuickNextHearingDate(new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]);
-                      setQuickNoticeDate(selectedCaseForDetail.noticeIssuedDate || new Date().toISOString().split('T')[0]);
-                    }}
-                    className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[10.5px] px-2.5 py-1 rounded flex items-center gap-1 transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>{isAddingHearingToCase ? 'Cancel' : '+ Record Notice / Next Hearing'}</span>
-                  </button>
+                  {!isViewer && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingHearingToCase(!isAddingHearingToCase);
+                        setQuickNextHearingDate(new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]);
+                        setQuickNoticeDate(selectedCaseForDetail.noticeIssuedDate || new Date().toISOString().split('T')[0]);
+                      }}
+                      className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[10.5px] px-2.5 py-1 rounded flex items-center gap-1 transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{isAddingHearingToCase ? 'Cancel' : '+ Record Notice / Next Hearing'}</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Quick Add Hearing Sub-Form */}
-                {isAddingHearingToCase && (
+                {!isViewer && isAddingHearingToCase && (
                   <div className="p-4 bg-amber-50/80 border-b-2 border-amber-300 space-y-3">
                     <span className="font-black text-amber-950 text-xs block">
                       Record Next Hearing Date &amp; Notice Proceedings:
@@ -1905,29 +1986,38 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
               {/* Modal Actions Footer */}
               <div className="flex flex-wrap items-center justify-between pt-3 border-t border-slate-200 gap-2">
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      const c = selectedCaseForDetail;
-                      setSelectedCaseForDetail(null);
-                      setCaseForOrderUpload(c);
-                    }}
-                    className="text-blue-700 hover:text-blue-900 font-bold text-xs flex items-center gap-1 p-1 cursor-pointer"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload Final Order Copy</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      const c = selectedCaseForDetail;
-                      setSelectedCaseForDetail(null);
-                      setCaseToEdit(c);
-                      setIsNewModalOpen(true);
-                    }}
-                    className="text-slate-600 hover:text-slate-900 font-bold text-xs flex items-center gap-1 p-1 cursor-pointer"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                    <span>Edit Full Case</span>
-                  </button>
+                  {!isViewer && (
+                    <>
+                      <button
+                        onClick={() => {
+                          const c = selectedCaseForDetail;
+                          setSelectedCaseForDetail(null);
+                          setCaseForOrderUpload(c);
+                        }}
+                        className="text-blue-700 hover:text-blue-900 font-bold text-xs flex items-center gap-1 p-1 cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload Final Order Copy</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          const c = selectedCaseForDetail;
+                          setSelectedCaseForDetail(null);
+                          setCaseToEdit(c);
+                          setIsNewModalOpen(true);
+                        }}
+                        className="text-slate-600 hover:text-slate-900 font-bold text-xs flex items-center gap-1 p-1 cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>Edit Full Case</span>
+                      </button>
+                    </>
+                  )}
+                  {isViewer && (
+                    <span className="text-xs font-semibold text-slate-500 italic">
+                      Viewer Mode: Read-Only Access
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">

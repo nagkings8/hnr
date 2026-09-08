@@ -56,11 +56,25 @@ export interface OutwardDespatch {
   fileAttachment?: string;
 }
 
+export type UserRole = 'ADMIN' | 'STAFF' | 'VIEWER';
+
 export interface StaffUser {
   id: number;
   name: string;
-  role: 'STAFF' | 'ADMIN';
+  role: UserRole;
   cadre: string;
+  phone?: string;
+  password?: string;
+  active: boolean;
+}
+
+export interface AdminProfile {
+  id: number;
+  name: string;
+  role: 'ADMIN';
+  cadre: string;
+  phone: string;
+  password: string;
   active: boolean;
 }
 
@@ -188,3 +202,16 @@ export const APPEAL_STATUSES = [
   "Under Hearing",
   "Reserved for Orders"
 ] as const;
+
+export type AuditActionType = 'ENTRY' | 'EDIT' | 'STATUS_CHANGE' | 'DELETE' | 'ORDER_UPLOAD';
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string; // Formatted date and time
+  module: 'Bhu Bharati' | 'Tapal Inward' | 'Tapal Outward' | 'Appeal Cases' | 'Sadabainama' | 'Staff Admin';
+  recordId: string; // e.g., "BB-2024-HZ-0012", "INW/2024/098", "ROR/12/2024"
+  actionType: AuditActionType;
+  performedBy: string; // Staff/Admin name and cadre
+  userRole: string; // 'ADMIN' | 'STAFF'
+  details: string; // Verbatim description of the action taken
+}

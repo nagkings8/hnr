@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { BhuFile, MANDAL_VILLAGES, MANDAL_LIST, REVENUE_MODULES, FILE_STATUSES } from '../types';
-import { Search, RotateCcw, Download, PlusCircle, FileText, RefreshCw, Printer, Trash2 } from 'lucide-react';
+import { BhuFile, MANDAL_VILLAGES, MANDAL_LIST, REVENUE_MODULES, FILE_STATUSES, StaffUser } from '../types';
+import { Search, RotateCcw, Download, PlusCircle, FileText, RefreshCw, Printer, Trash2, FolderOpen, CheckCircle2, Clock, Send, AlertCircle, Layers, ShieldAlert, Eye } from 'lucide-react';
 import { exportBhuBharatiToCSV } from '../utils/storage';
 import { printTableReport } from '../utils/printReport';
 
 interface BhuBharatiViewProps {
   files: BhuFile[];
   initialStatusFilter?: string;
+  currentUser?: StaffUser | null;
   onNewFile: () => void;
   onUpdateStatus: (file: BhuFile) => void;
   onPrintSlip: (file: BhuFile) => void;
@@ -17,12 +18,16 @@ interface BhuBharatiViewProps {
 export const BhuBharatiView: React.FC<BhuBharatiViewProps> = ({
   files,
   initialStatusFilter = '',
+  currentUser,
   onNewFile,
   onUpdateStatus,
   onPrintSlip,
   onViewPdf,
   onDeleteFile,
 }) => {
+  const isAdmin = currentUser?.role === 'ADMIN';
+  const isViewer = !currentUser || currentUser?.role === 'VIEWER';
+  const canEditAndPrint = !isViewer;
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMandal, setSelectedMandal] = useState('');
   const [selectedVillage, setSelectedVillage] = useState('');
@@ -47,6 +52,19 @@ export const BhuBharatiView: React.FC<BhuBharatiViewProps> = ({
     setSelectedModule('');
     setSelectedStatus('');
   };
+
+  const stats = useMemo(() => {
+    const total = files.length;
+    const pendingAtRdo = files.filter(
+      (f) => f.status === 'Pending at RDO' || f.status === 'Received from MRO'
+    ).length;
+    const forwarded = files.filter((f) => f.status === 'Forwarded to Collectorate').length;
+    const completed = files.filter((f) => f.status === 'Completed').length;
+    const returned = files.filter(
+      (f) => f.status === 'Returned to MRO' || f.status === 'Returned from Collectorate'
+    ).length;
+    return { total, pendingAtRdo, forwarded, completed, returned };
+  }, [files]);
 
   const filteredFiles = useMemo(() => {
     return files.filter(f => {
@@ -135,9 +153,201 @@ export const BhuBharatiView: React.FC<BhuBharatiViewProps> = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 md:p-6 shadow-xs space-y-4">
-      {/* Header section */}
-      <div className="flex flex-wrap justify-between items-center gap-3 border-b border-slate-100 pb-4">
+    <div className="space-y-6">
+      {/* ============================================================ */}
+      {/* TOP DASHBOARD BANNER (MATCHING APPEAL CASES STYLE) */}
+      {/* ============================================================ */}
+      <div className="bg-gradient-to-r from-[#07203b] via-[#0d3b68] to-[#07203b] text-white p-5 md:p-6 rounded-2xl shadow-xl border-t-2 border-amber-400 relative overflow-hidden">
+        {/* Top ambient glass reflection */}
+        <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-300/60 to-transparent pointer-events-none" />
+        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 -top-10 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-700 p-0.5 shadow-lg shadow-sky-900/40 flex items-center justify-center shrink-0">
+              <div className="w-full h-full bg-[#082343] rounded-[14px] flex items-center justify-center text-sky-300">
+                <FolderOpen className="w-6 h-6 md:w-7 md:h-7" />
+              </div>
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 rounded-md shadow-xs">
+                  Land Administration
+                </span>
+                <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-blue-500/30 text-blue-200 rounded-md border border-blue-400/30">
+                  Telangana Bhu Bharati Act, 2025
+                </span>
+                <span className="text-xs font-semibold text-blue-200">
+                  Huzurnagar Division • 7 Mandals • 16 Revenue Modules
+                </span>
+              </div>
+              <h1 className="text-xl md:text-2xl font-black tracking-wide text-white drop-shadow-sm">
+                BHU BHARATI REVENUE LAND FILES REGISTER
+              </h1>
+              <p className="text-xs text-blue-100 font-medium max-w-3xl">
+                Real-time tracking of Mutation, Extent Correction, Succession, Court Cases, and Land Record Corrections across D Section
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Stats Pill */}
+          <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/15 shadow-sm">
+            <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0" />
+            <div>
+              <div className="text-[10px] text-blue-200 font-bold uppercase tracking-wider">
+                Completed &amp; Disposed
+              </div>
+              <div className="text-lg font-black text-white leading-none">
+                {stats.completed}{' '}
+                <span className="text-xs font-medium text-blue-200">
+                  / {stats.total} Files ({stats.total ? Math.round((stats.completed / stats.total) * 100) : 0}%)
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* SUMMARY STAT CARDS (5 GLOSSY & COLORFUL CARDS) */}
+      {/* ============================================================ */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        {/* Card 1: Total Files */}
+        <div
+          onClick={() => setSelectedStatus('')}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 ${
+            selectedStatus === ''
+              ? 'bg-gradient-to-br from-blue-50/90 via-white to-blue-100/40 border-2 border-blue-600 shadow-[0_12px_24px_-6px_rgba(37,99,235,0.3)] ring-2 ring-blue-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-blue-400 hover:shadow-[0_14px_28px_-6px_rgba(37,99,235,0.25)] hover:-translate-y-1.5'
+          }`}
+        >
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-blue-900">
+              Total Files
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-200">
+              <FolderOpen className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10 text-3xl font-black text-blue-950 group-hover:text-blue-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {stats.total}
+          </div>
+          <p className="relative z-10 text-[11px] text-blue-700 font-semibold mt-0.5">
+            All registered files →
+          </p>
+        </div>
+
+        {/* Card 2: Pending at RDO */}
+        <div
+          onClick={() => setSelectedStatus(selectedStatus === 'Pending at RDO' ? '' : 'Pending at RDO')}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 ${
+            selectedStatus === 'Pending at RDO' || selectedStatus === 'Received from MRO'
+              ? 'bg-gradient-to-br from-amber-50/90 via-white to-amber-100/40 border-2 border-amber-500 shadow-[0_12px_24px_-6px_rgba(217,119,6,0.3)] ring-2 ring-amber-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-amber-400 hover:shadow-[0_14px_28px_-6px_rgba(217,119,6,0.25)] hover:-translate-y-1.5'
+          }`}
+        >
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-amber-800">
+              Pending at RDO
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors duration-200">
+              <Clock className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10 text-3xl font-black text-amber-700 group-hover:text-amber-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {stats.pendingAtRdo}
+          </div>
+          <p className="relative z-10 text-[11px] text-amber-700 font-semibold mt-0.5">
+            Action due at RDO seat →
+          </p>
+        </div>
+
+        {/* Card 3: Forwarded to Collectorate */}
+        <div
+          onClick={() => setSelectedStatus(selectedStatus === 'Forwarded to Collectorate' ? '' : 'Forwarded to Collectorate')}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 ${
+            selectedStatus === 'Forwarded to Collectorate'
+              ? 'bg-gradient-to-br from-sky-50/90 via-white to-sky-100/40 border-2 border-sky-500 shadow-[0_12px_24px_-6px_rgba(14,165,233,0.3)] ring-2 ring-sky-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-sky-400 hover:shadow-[0_14px_28px_-6px_rgba(14,165,233,0.25)] hover:-translate-y-1.5'
+          }`}
+        >
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-sky-800">
+              Forwarded
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors duration-200">
+              <Send className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10 text-3xl font-black text-sky-700 group-hover:text-sky-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {stats.forwarded}
+          </div>
+          <p className="relative z-10 text-[11px] text-sky-700 font-semibold mt-0.5">
+            To District Collectorate →
+          </p>
+        </div>
+
+        {/* Card 4: Completed / Disposed */}
+        <div
+          onClick={() => setSelectedStatus(selectedStatus === 'Completed' ? '' : 'Completed')}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 ${
+            selectedStatus === 'Completed'
+              ? 'bg-gradient-to-br from-emerald-50/90 via-white to-emerald-100/40 border-2 border-emerald-600 shadow-[0_12px_24px_-6px_rgba(16,185,129,0.3)] ring-2 ring-emerald-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-emerald-400 hover:shadow-[0_14px_28px_-6px_rgba(16,185,129,0.25)] hover:-translate-y-1.5'
+          }`}
+        >
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800">
+              Completed / Disposed
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-200">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10 text-3xl font-black text-emerald-700 group-hover:text-emerald-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {stats.completed}
+          </div>
+          <p className="relative z-10 text-[11px] text-emerald-700 font-semibold mt-0.5">
+            Successfully completed →
+          </p>
+        </div>
+
+        {/* Card 5: Returned for Queries */}
+        <div
+          onClick={() => setSelectedStatus(selectedStatus === 'Returned to MRO' ? '' : 'Returned to MRO')}
+          className={`group relative overflow-hidden backdrop-blur-md rounded-2xl p-4.5 cursor-pointer transition-all duration-300 col-span-2 sm:col-span-1 ${
+            selectedStatus === 'Returned to MRO' || selectedStatus === 'Returned from Collectorate'
+              ? 'bg-gradient-to-br from-rose-50/90 via-white to-rose-100/40 border-2 border-rose-600 shadow-[0_12px_24px_-6px_rgba(244,63,94,0.3)] ring-2 ring-rose-500/30 -translate-y-1'
+              : 'bg-gradient-to-br from-white via-white/95 to-slate-50/60 border border-slate-200/90 hover:border-rose-400 hover:shadow-[0_14px_28px_-6px_rgba(244,63,94,0.25)] hover:-translate-y-1.5'
+          }`}
+        >
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/80 via-white/15 to-transparent pointer-events-none rounded-t-2xl" />
+          <div className="relative z-10 flex items-center justify-between mb-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-rose-800">
+              Returned / Queries
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors duration-200">
+              <AlertCircle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="relative z-10 text-3xl font-black text-rose-700 group-hover:text-rose-600 group-hover:scale-105 origin-left transition-all duration-300">
+            {stats.returned}
+          </div>
+          <p className="relative z-10 text-[11px] text-rose-700 font-semibold mt-0.5">
+            Clarification sought →
+          </p>
+        </div>
+      </div>
+
+      {/* Main Table Container */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 md:p-6 shadow-xs space-y-4">
+        {/* Header section */}
+        <div className="flex flex-wrap justify-between items-center gap-3 border-b border-slate-100 pb-4">
         <div>
           <h2 className="text-xl font-black text-slate-900">Bhu Bharati Files Master Register</h2>
           <p className="text-xs font-semibold text-slate-500">
@@ -145,28 +355,37 @@ export const BhuBharatiView: React.FC<BhuBharatiViewProps> = ({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handlePrintTable}
-            className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-            title="Print Bhu Bharati Files Table"
-          >
-            <Printer className="w-3.5 h-3.5 text-sky-300" />
-            <span>Print Files Register</span>
-          </button>
-          <button
-            onClick={() => exportBhuBharatiToCSV(files)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export Excel (CSV)</span>
-          </button>
-          <button
-            onClick={onNewFile}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>New Bhu Bharati File</span>
-          </button>
+          {isViewer ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
+              <Eye className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Viewer Mode (Read-Only)</span>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={handlePrintTable}
+                className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                title="Print Bhu Bharati Files Table"
+              >
+                <Printer className="w-3.5 h-3.5 text-sky-300" />
+                <span>Print Files Register</span>
+              </button>
+              <button
+                onClick={() => exportBhuBharatiToCSV(files)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export Excel (CSV)</span>
+              </button>
+              <button
+                onClick={onNewFile}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>New Bhu Bharati File</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -321,28 +540,42 @@ export const BhuBharatiView: React.FC<BhuBharatiViewProps> = ({
                   </td>
                   <td className="py-2.5 px-3 text-center">
                     <div className="flex items-center justify-center gap-1.5">
-                      <button
-                        onClick={() => onUpdateStatus(f)}
-                        className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-2 py-1 rounded text-[11px] inline-flex items-center gap-1 transition cursor-pointer shadow-xs"
-                        title="Update File Status Movement"
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                        <span>Status</span>
-                      </button>
-                      <button
-                        onClick={() => onPrintSlip(f)}
-                        className="bg-slate-800 hover:bg-slate-900 text-white font-bold px-2 py-1 rounded text-[11px] inline-flex items-center gap-1 transition cursor-pointer shadow-xs"
-                        title="Print Official Tracking Slip"
-                      >
-                        <Printer className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => onDeleteFile(f)}
-                        className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2 py-1 rounded text-[11px] inline-flex items-center gap-1 transition cursor-pointer shadow-xs"
-                        title="Delete File Record"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                      {!isViewer && (
+                        <>
+                          <button
+                            onClick={() => onUpdateStatus(f)}
+                            className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-2 py-1 rounded text-[11px] inline-flex items-center gap-1 transition cursor-pointer shadow-xs"
+                            title="Update File Status Movement"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            <span>Status</span>
+                          </button>
+                          <button
+                            onClick={() => onPrintSlip(f)}
+                            className="bg-slate-800 hover:bg-slate-900 text-white font-bold px-2 py-1 rounded text-[11px] inline-flex items-center gap-1 transition cursor-pointer shadow-xs"
+                            title="Print Official Tracking Slip"
+                          >
+                            <Printer className="w-3 h-3" />
+                          </button>
+                        </>
+                      )}
+
+                      {/* Delete button: ADMIN ONLY */}
+                      {isAdmin && (
+                        <button
+                          onClick={() => onDeleteFile(f)}
+                          className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2 py-1 rounded text-[11px] inline-flex items-center gap-1 transition cursor-pointer shadow-xs"
+                          title="Delete File Record (Administrator Only)"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+
+                      {isViewer && (
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                          Read-Only
+                        </span>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -352,5 +585,6 @@ export const BhuBharatiView: React.FC<BhuBharatiViewProps> = ({
         </table>
       </div>
     </div>
-  );
+  </div>
+);
 };

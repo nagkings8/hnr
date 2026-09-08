@@ -1,6 +1,7 @@
 /**
  * Utility for generating and printing official government formatted reports for RDO Huzurnagar
  */
+import { RDO_LOGO_BASE64 } from './logoBase64';
 
 export interface PrintReportPayload {
   title: string;
@@ -201,9 +202,17 @@ export const generatePrintHtml = (payload: PrintReportPayload, autoPrint = false
   </head>
   <body>
     <div class="header-container">
-      <div class="emblem-title">GOVERNMENT OF TELANGANA • REVENUE DEPARTMENT</div>
-      <div class="office-title">${subtitle}</div>
-      <div class="report-title">${title}</div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px;">
+        <img src="${RDO_LOGO_BASE64}" alt="RDO Logo" style="width: ${landscape ? '56px' : '68px'}; height: ${landscape ? '56px' : '68px'}; object-fit: contain; flex-shrink: 0;" />
+        <div style="flex: 1; text-align: center;">
+          <div class="emblem-title">GOVERNMENT OF TELANGANA • REVENUE DEPARTMENT</div>
+          <div class="office-title">${subtitle}</div>
+          <div class="report-title">${title}</div>
+        </div>
+        <div style="width: ${landscape ? '56px' : '68px'}; flex-shrink: 0; text-align: center; font-size: ${landscape ? '7.5pt' : '8.5pt'}; font-weight: 800; color: #0f3b63; border: 1.5px solid #0f3b63; border-radius: 4px; padding: 4px 2px; line-height: 1.25;">
+          OFFICIAL<br/>COPY
+        </div>
+      </div>
       <div class="meta-bar">
         <span>District: Suryapet &nbsp;|&nbsp; Division: Huzurnagar</span>
         <span>${period ? `Period / As on: ${period} &nbsp;|&nbsp; ` : ''}Printed on: ${currentDate} ${currentTime}</span>

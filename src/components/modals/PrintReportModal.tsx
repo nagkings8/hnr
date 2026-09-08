@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { PrintReportPayload, generatePrintHtml } from '../../utils/printReport';
+import { RDO_LOGO_BASE64 } from '../../utils/logoBase64';
 import { X, Printer, ExternalLink, Download, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface PrintReportModalProps {
@@ -613,15 +614,27 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
             }}
           >
             {/* Government Letterhead Header */}
-            <div className="text-center border-b-2 border-[#0f3b63] pb-2.5 mb-3">
-              <div className={`font-extrabold text-[#0f3b63] uppercase tracking-wider mb-0.5 ${landscape ? 'text-xs sm:text-sm' : 'text-xs sm:text-sm'}`}>
-                GOVERNMENT OF TELANGANA • REVENUE DEPARTMENT
-              </div>
-              <div className={`font-black text-slate-900 mb-1 ${landscape ? 'text-sm sm:text-base' : 'text-sm sm:text-base'}`}>
-                {subtitle}
-              </div>
-              <div className={`inline-block bg-[#134674] text-white font-extrabold rounded tracking-wide mt-0.5 ${landscape ? 'text-xs px-3.5 py-1' : 'text-xs sm:text-sm px-4 py-1'}`}>
-                {title}
+            <div className="border-b-2 border-[#0f3b63] pb-2.5 mb-3">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <img
+                  src={RDO_LOGO_BASE64}
+                  alt="RDO Huzurnagar Logo"
+                  className={`object-contain shrink-0 ${landscape ? 'w-14 h-14' : 'w-16 h-16'}`}
+                />
+                <div className="text-center flex-1">
+                  <div className={`font-extrabold text-[#0f3b63] uppercase tracking-wider mb-0.5 ${landscape ? 'text-xs sm:text-sm' : 'text-xs sm:text-sm'}`}>
+                    GOVERNMENT OF TELANGANA • REVENUE DEPARTMENT
+                  </div>
+                  <div className={`font-black text-slate-900 mb-1 ${landscape ? 'text-sm sm:text-base' : 'text-sm sm:text-base'}`}>
+                    {subtitle}
+                  </div>
+                  <div className={`inline-block bg-[#134674] text-white font-extrabold rounded tracking-wide mt-0.5 ${landscape ? 'text-xs px-3.5 py-1' : 'text-xs sm:text-sm px-4 py-1'}`}>
+                    {title}
+                  </div>
+                </div>
+                <div className={`shrink-0 text-center font-extrabold text-[#0f3b63] border-2 border-[#0f3b63] rounded px-2 py-1 leading-tight ${landscape ? 'w-14 text-[8px]' : 'w-16 text-[9.5px]'}`}>
+                  OFFICIAL<br/>COPY
+                </div>
               </div>
               <div className={`flex justify-between items-center text-slate-600 font-semibold mt-2 px-1 border-t border-slate-200 pt-1 ${landscape ? 'text-[10px] sm:text-xs' : 'text-[11px] sm:text-xs'}`}>
                 <span>District: Suryapet | Division: Huzurnagar</span>
