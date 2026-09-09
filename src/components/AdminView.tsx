@@ -668,9 +668,6 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <h2 className="text-base sm:text-lg md:text-xl font-black text-white flex items-center gap-2 tracking-tight">
                 <History className="w-5 h-5 text-amber-400 shrink-0" />
                 <span>File Entry &amp; Edit Audit Log Register</span>
-                <span className="text-amber-300 font-semibold text-xs hidden sm:inline">
-                  (ఫైల్ ఎంట్రీ &amp; సవరణల ఆడిట్ లాగ్ రిజిస్టర్)
-                </span>
               </h2>
               <p className="text-xs text-slate-300 mt-1 max-w-2xl font-medium">
                 Complete official audit record tracking which staff officer entered each file, who made status changes or edits, timestamps, and case disposal actions across D-Section.
@@ -760,12 +757,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 onChange={(e) => setLogModuleFilter(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:border-amber-500 focus:outline-none bg-white"
               >
-                <option value="ALL">All Modules (అన్ని విభాగాలు)</option>
-                <option value="Bhu Bharati">Bhu Bharati Files (భూ భారతి)</option>
-                <option value="Tapal Inward">Tapal Inward (ఇన్వార్డ్ తపాలా)</option>
-                <option value="Tapal Outward">Tapal Outward (ఔట్వార్డ్ తపాలా)</option>
-                <option value="Appeal Cases">Appeal Cases (అప్పీల్ కేసులు)</option>
-                <option value="Sadabainama">Sadabainama (సదాబైనామా)</option>
+                <option value="ALL">All Modules</option>
+                <option value="Bhu Bharati">Bhu Bharati Files</option>
+                <option value="Tapal Inward">Tapal Inward</option>
+                <option value="Tapal Outward">Tapal Outward</option>
+                <option value="Appeal Cases">Appeal Cases</option>
+                <option value="Sadabainama">Sadabainama</option>
               </select>
             </div>
 
@@ -776,12 +773,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 onChange={(e) => setLogActionFilter(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:border-amber-500 focus:outline-none bg-white"
               >
-                <option value="ALL">All Actions (అన్ని చర్యలు)</option>
-                <option value="ENTRY">New File Entry (నూతన ఎంట్రీ)</option>
-                <option value="STATUS_CHANGE">Status Change (స్థితి మార్పు)</option>
-                <option value="EDIT">File / Hearing Edited (సవరణ)</option>
-                <option value="ORDER_UPLOAD">Order Uploaded (ఉత్తర్వులు)</option>
-                <option value="DELETE">Record Deleted (తొలగింపు)</option>
+                <option value="ALL">All Actions</option>
+                <option value="ENTRY">New File Entry</option>
+                <option value="STATUS_CHANGE">Status Change</option>
+                <option value="EDIT">File / Hearing Edited</option>
+                <option value="ORDER_UPLOAD">Order Uploaded</option>
+                <option value="DELETE">Record Deleted</option>
               </select>
             </div>
 
@@ -792,7 +789,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 onChange={(e) => setLogOfficerFilter(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:border-amber-500 focus:outline-none bg-white"
               >
-                <option value="ALL">All Officers (సిబ్బంది అందరూ)</option>
+                <option value="ALL">All Officers</option>
                 {officerOptions.map((off) => (
                   <option key={off} value={off}>
                     {off}
@@ -866,7 +863,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         return (
                           <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full font-bold text-[10.5px]">
                             <PlusCircle className="w-3 h-3 text-emerald-600" />
-                            <span>New Entry (ఎంట్రీ)</span>
+                            <span>New Entry</span>
                           </span>
                         );
                       case 'STATUS_CHANGE':

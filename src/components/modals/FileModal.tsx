@@ -36,9 +36,24 @@ export const FileModal: React.FC<FileModalProps> = ({
   const [duplicateFile, setDuplicateFile] = useState<BhuFile | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const handleReset = () => {
+    setAppNumber('');
+    setApplicantName('');
+    setMandal('');
+    setVillage('');
+    setSurveyNo('');
+    setModule('');
+    setReceivedDate(getTodayDateString());
+    setStatus('Received from MRO');
+    setRemarks('');
+    setBase64File('');
+    setFileName('');
+    setDuplicateFile(null);
+  };
+
   useEffect(() => {
     if (isOpen) {
-      setReceivedDate(getTodayDateString());
+      handleReset();
     }
   }, [isOpen]);
 
@@ -76,21 +91,6 @@ export const FileModal: React.FC<FileModalProps> = ({
       setBase64File(reader.result as string);
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleReset = () => {
-    setAppNumber('');
-    setApplicantName('');
-    setMandal('');
-    setVillage('');
-    setSurveyNo('');
-    setModule('');
-    setReceivedDate(getTodayDateString());
-    setStatus('Received from MRO');
-    setRemarks('');
-    setBase64File('');
-    setFileName('');
-    setDuplicateFile(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

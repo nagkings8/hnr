@@ -46,6 +46,7 @@ import { PrintReportModal } from './components/modals/PrintReportModal';
 import { DeleteConfirmModal } from './components/modals/DeleteConfirmModal';
 import { LoginModal } from './components/modals/LoginModal';
 import { AddUserModal } from './components/modals/AddUserModal';
+import { ChangePasswordModal } from './components/modals/ChangePasswordModal';
 import { PrintReportPayload } from './utils/printReport';
 
 export default function App() {
@@ -128,6 +129,7 @@ export default function App() {
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
   // Global listener for table print preview requests across all tabs
   useEffect(() => {
@@ -181,7 +183,7 @@ export default function App() {
 
   // Activity & File Audit Logger
   const logActivity = (
-    module: 'Bhu Bharati' | 'Tapal Inward' | 'Tapal Outward' | 'Appeal Cases' | 'Sadabainama',
+    module: 'Bhu Bharati' | 'Tapal Inward' | 'Tapal Outward' | 'Appeal Cases' | 'Sadabainama' | 'Staff Admin',
     recordId: string,
     actionType: 'ENTRY' | 'EDIT' | 'STATUS_CHANGE' | 'DELETE' | 'ORDER_UPLOAD',
     details: string
@@ -554,12 +556,6 @@ export default function App() {
     setIsPdfModalOpen(true);
   };
 
-  const handleResetSampleCases = () => {
-    setAppealCases(INITIAL_APPEAL_CASES);
-    safeSaveLocalStorage('rdo_appeal_cases', INITIAL_APPEAL_CASES);
-    showToast('Reset to Huzurnagar court sample appeal cases.');
-  };
-
   const handleConfirmDelete = async () => {
     if (!pendingDeleteAction) return;
     setIsDeleting(true);
@@ -622,26 +618,58 @@ export default function App() {
     }
   };
 
+  const handleUpdateStaffPassword = (staffId: number, newPassword: string) => {
+    const updated = staff.map((s) => (s.id === staffId ? { ...s, password: newPassword } : s));
+    setStaff(updated);
+    safeSaveLocalStorage('rdo_staff', updated);
+    logActivity(
+      'Staff Admin',
+      `Staff #${staffId}`,
+      'EDIT',
+      `Password changed for staff member #${staffId}`
+    );
+    // If the currently logged in user is this staff member, update session too
+    if (currentUser && currentUser.id === staffId) {
+      setCurrentUser({ ...currentUser, password: newPassword });
+    }
+  };
+
+  const handleUpdateAdminPassword = (newPassword: string) => {
+    const updated = { ...adminProfile, password: newPassword };
+    setAdminProfile(updated);
+    safeSaveLocalStorage('rdo_admin_profile', updated);
+    logActivity(
+      'Staff Admin',
+      'Administrator',
+      'EDIT',
+      'Administrator master password updated'
+    );
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-100 text-slate-900 font-sans">
-      {/* Official Government Header */}
-      <Header
-        currentUser={currentUser}
-        onOpenLogin={() => setIsLoginModalOpen(true)}
-        onLogout={() => {
-          setCurrentUser(null);
-          if (activeTab === 'adminTab') setActiveTab('dashboardTab');
-          showToast('Signed out.');
-        }}
-        onGoHome={() => setActiveTab('dashboardTab')}
-      />
+      {/* Locked Official Header & Navigation Bar */}
+      <div className="sticky top-0 z-50 w-full shadow-lg bg-[#061122]">
+        {/* Official Government Header */}
+        <Header
+          currentUser={currentUser}
+          onOpenLogin={() => setIsLoginModalOpen(true)}
+          onLogout={() => {
+            setCurrentUser(null);
+            if (activeTab === 'adminTab') setActiveTab('dashboardTab');
+            showToast('Signed out.');
+          }}
+          onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
+          onGoHome={() => setActiveTab('dashboardTab')}
+        />
 
-      {/* Navigation Bar */}
-      <Navigation
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        currentUser={currentUser}
-      />
+        {/* Navigation Bar */}
+        <Navigation
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          currentUser={currentUser}
+        />
+      </div>
 
       {/* Main Content Container */}
       <main className="max-w-[1520px] w-full mx-auto px-4 md:px-6 py-6 flex-1">
@@ -711,7 +739,6 @@ export default function App() {
             onUpdateCase={handleUpdateAppealCase}
             onDeleteCase={handleDeleteAppealCasePrompt}
             onViewFinalOrder={handleViewAppealFinalOrder}
-            onResetSampleCases={handleResetSampleCases}
             onShowToast={showToast}
           />
         )}
@@ -845,6 +872,18 @@ export default function App() {
         staff={staff}
         adminProfile={adminProfile}
         onLogin={setCurrentUser}
+        onShowToast={showToast}
+        onUpdateStaffPassword={handleUpdateStaffPassword}
+      />
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+        currentUser={currentUser}
+        adminProfile={adminProfile}
+        staff={staff}
+        onUpdateStaffPassword={handleUpdateStaffPassword}
+        onUpdateAdminPassword={handleUpdateAdminPassword}
         onShowToast={showToast}
       />
 

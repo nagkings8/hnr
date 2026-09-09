@@ -355,12 +355,7 @@ export const BhuBharatiView: React.FC<BhuBharatiViewProps> = ({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {isViewer ? (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
-              <Eye className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Viewer Mode (Read-Only)</span>
-            </div>
-          ) : (
+          {!isViewer && (
             <>
               <button
                 onClick={handlePrintTable}
@@ -569,12 +564,6 @@ export const BhuBharatiView: React.FC<BhuBharatiViewProps> = ({
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
-                      )}
-
-                      {isViewer && (
-                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                          Read-Only
-                        </span>
                       )}
                     </div>
                   </td>

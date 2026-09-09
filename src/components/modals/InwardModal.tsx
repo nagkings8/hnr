@@ -22,9 +22,21 @@ export const InwardModal: React.FC<InwardModalProps> = ({ isOpen, onClose, onSav
   const [fileName, setFileName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
+  const handleReset = () => {
+    setInwardNo('');
+    setReceivedDate(getTodayDateString());
+    setSender('');
+    setMandal('GENERAL / DIVISION');
+    setSeat('D Section / Seat-1');
+    setStatus('Under Scrutiny');
+    setSubject('');
+    setBase64File('');
+    setFileName('');
+  };
+
   useEffect(() => {
     if (isOpen) {
-      setReceivedDate(getTodayDateString());
+      handleReset();
     }
   }, [isOpen]);
 
@@ -44,18 +56,6 @@ export const InwardModal: React.FC<InwardModalProps> = ({ isOpen, onClose, onSav
       setBase64File(reader.result as string);
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleReset = () => {
-    setInwardNo('');
-    setReceivedDate(getTodayDateString());
-    setSender('');
-    setMandal('GENERAL / DIVISION');
-    setSeat('D Section / Seat-1');
-    setStatus('Under Scrutiny');
-    setSubject('');
-    setBase64File('');
-    setFileName('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

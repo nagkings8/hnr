@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StaffUser } from '../../types';
 import { X, UserPlus, Phone, Lock, Eye, EyeOff } from 'lucide-react';
 
@@ -20,6 +20,16 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setName('');
+      setCadre('');
+      setPhone('');
+      setPassword('');
+      setShowPassword(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

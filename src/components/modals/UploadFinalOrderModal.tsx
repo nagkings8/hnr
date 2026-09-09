@@ -33,10 +33,7 @@ export const UploadFinalOrderModal: React.FC<UploadFinalOrderModalProps> = ({
   useEffect(() => {
     if (appealCase) {
       const today = new Date().toISOString().split('T')[0];
-      setFinalOrderNo(
-        appealCase.finalOrderNo ||
-          `Procgs. No. D/ROR/BB/${Math.floor(Math.random() * 900 + 100)}/${new Date().getFullYear()}`
-      );
+      setFinalOrderNo(appealCase.finalOrderNo || '');
       setFinalOrderDate(appealCase.finalOrderDate || today);
       setStatus(
         appealCase.status.includes('Final Order')

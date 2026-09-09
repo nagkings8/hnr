@@ -1011,12 +1011,7 @@ export const SadabainamaView: React.FC<SadabainamaViewProps> = ({
 
             {/* Controls: Upload, Export, Reset, Clear */}
             <div className="flex flex-wrap items-center gap-2">
-              {isViewer ? (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
-                  <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Viewer Mode (Read-Only)</span>
-                </div>
-              ) : (
+              {!isViewer && (
                 <>
                   <input
                     type="file"
@@ -1369,12 +1364,7 @@ export const SadabainamaView: React.FC<SadabainamaViewProps> = ({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {isViewer ? (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
-                <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Viewer Mode (Read-Only)</span>
-              </div>
-            ) : (
+            {!isViewer && (
               <>
                 <input
                   type="file"

@@ -34,6 +34,8 @@ export const AppealCaseModal: React.FC<AppealCaseModalProps> = ({
   const [registrationDate, setRegistrationDate] = useState('');
   const [cnrNumber, setCnrNumber] = useState('');
   const [appealType, setAppealType] = useState<string>(APPEAL_TYPES[0]);
+  const [isManualAppealEntry, setIsManualAppealEntry] = useState(false);
+  const [otherSectionDetail, setOtherSectionDetail] = useState('');
   const [bhuBharatiActSection, setBhuBharatiActSection] = useState('Section 15(1) read with Rule 14 of Telangana Bhu Bharati Rules, 2025');
   const [mandal, setMandal] = useState<string>(MANDAL_LIST[0]);
   const [village, setVillage] = useState<string>('');
@@ -81,13 +83,57 @@ export const AppealCaseModal: React.FC<AppealCaseModalProps> = ({
     return d.toISOString().split('T')[0];
   };
 
+  const handleAppealTypeChange = (val: string) => {
+    setAppealType(val);
+    if (val === 'Other Revenue Appeal') {
+      if (bhuBharatiActSection.includes('Bhu Bharati Rules')) {
+        setBhuBharatiActSection('');
+      }
+    } else if (val.includes('RoR Rectification')) {
+      setBhuBharatiActSection('Section 15(1) read with Rule 14 of Telangana Bhu Bharati Rules, 2025');
+    } else if (val.includes('Mutation on Transfer')) {
+      setBhuBharatiActSection('Section 15(1) read with Section 5 of Telangana Bhu Bharati Act, 2025');
+    } else if (val.includes('Succession / Will')) {
+      setBhuBharatiActSection('Section 15(1) read with Section 7 of Telangana Bhu Bharati Act, 2025');
+    } else if (val.includes('Bhudhaar & Passbook')) {
+      setBhuBharatiActSection('Section 15(1) read with Section 9 & 10 of Telangana Bhu Bharati Act, 2025');
+    } else if (val.includes('Sadabainama')) {
+      setBhuBharatiActSection('Section 6(1) & (5) of Telangana Bhu Bharati Act, 2025');
+    } else if (val.includes('Court Decree')) {
+      setBhuBharatiActSection('Section 8 of Telangana Bhu Bharati Act, 2025');
+    } else if (val.includes('Tenancy Act')) {
+      setBhuBharatiActSection('Section 90 of Tenancy & Agricultural Lands Act, 1950');
+    } else if (val.includes('Inams Abolition')) {
+      setBhuBharatiActSection('Section 24 of Inams Abolition Act, 1955');
+    } else if (val.includes('Assigned Lands')) {
+      setBhuBharatiActSection('Section 4A / 4B of Assigned Lands (POT) Act 9 of 1977');
+    } else if (val.includes('Schedule A')) {
+      setBhuBharatiActSection('Schedule A - RoR Correction (Survey No / Extent / NALA)');
+    }
+  };
+
   useEffect(() => {
     if (caseToEdit) {
       setCaseNo(caseToEdit.caseNo || '');
       setRegistrationNo(caseToEdit.registrationNo || caseToEdit.caseNo.replace(/[^0-9/]/g, '') || '');
       setRegistrationDate(caseToEdit.registrationDate || caseToEdit.filingDate || '');
       setCnrNumber(caseToEdit.cnrNumber || `TSHZNR04${String(caseToEdit.id).slice(-6)}2026`);
-      setAppealType(caseToEdit.appealType || APPEAL_TYPES[0]);
+      
+      const isKnownType = APPEAL_TYPES.includes(caseToEdit.appealType as any);
+      if (!isKnownType) {
+        setIsManualAppealEntry(true);
+        setAppealType(caseToEdit.appealType || '');
+        setOtherSectionDetail(caseToEdit.bhuBharatiActSection || caseToEdit.appealType || '');
+      } else {
+        setIsManualAppealEntry(false);
+        setAppealType(caseToEdit.appealType || APPEAL_TYPES[0]);
+        if (caseToEdit.appealType === 'Other Revenue Appeal') {
+          setOtherSectionDetail(caseToEdit.bhuBharatiActSection || '');
+        } else {
+          setOtherSectionDetail('');
+        }
+      }
+
       setBhuBharatiActSection(caseToEdit.bhuBharatiActSection || 'Section 15(1) read with Rule 14 of Telangana Bhu Bharati Rules, 2025');
       setMandal(caseToEdit.mandal || MANDAL_LIST[0]);
       setVillage(caseToEdit.village || '');
@@ -115,52 +161,44 @@ export const AppealCaseModal: React.FC<AppealCaseModalProps> = ({
       setAttachedFileBase64(caseToEdit.finalOrderFile || null);
       setCaseHistory(caseToEdit.caseHistory || []);
     } else {
-      const randNum = Math.floor(Math.random() * 80 + 10);
-      setCaseNo(`ROR/BB/${randNum}/2026`);
-      setRegistrationNo(`${randNum}/2026`);
+      setCaseNo('');
+      setRegistrationNo('');
       setRegistrationDate(todayStr);
-      setCnrNumber(`TSHZNR04000${Math.floor(Math.random() * 9000 + 1000)}2026`);
+      setCnrNumber('');
       setAppealType(APPEAL_TYPES[0]);
-      setBhuBharatiActSection('Section 15(1) read with Rule 14 of Telangana Bhu Bharati Rules, 2025');
+      setIsManualAppealEntry(false);
+      setOtherSectionDetail('');
+      setBhuBharatiActSection('');
       setMandal(MANDAL_LIST[0]);
       const vList = MANDAL_VILLAGES[MANDAL_LIST[0]] || [];
       setVillage(vList[0] || '');
       setSurveyNo('');
       setExtent('');
       setAppellantName('');
-      setAppellantAdvocate('Sri B. Srinivas Rao, Advocate');
-      setRespondentName('Tahsildar & Others');
-      setRespondentAdvocate('GP for Revenue');
+      setAppellantAdvocate('');
+      setRespondentName('');
+      setRespondentAdvocate('');
       
       // Default dates
       setFilingDate(todayStr);
-      setNoticeIssuedDate(todayStr);
+      setNoticeIssuedDate('');
       setNoticeServedDate('');
-      setFirstHearingDate(addDays(todayStr, 14));
-      setHearingDate(todayStr);
-      setNextHearingDate(addDays(todayStr, 14));
+      setFirstHearingDate('');
+      setHearingDate('');
+      setNextHearingDate('');
       setStagePurpose('SUMMONS & NOTICE ISSUED');
-      setImpugnedOrderNo(`File No. B/ROR/${Math.floor(Math.random() * 800 + 100)}/2025`);
-      setImpugnedOrderDate(addDays(todayStr, -20));
+      setImpugnedOrderNo('');
+      setImpugnedOrderDate('');
       setStatus("Under Hearing");
       setFinalOrderNo('');
       setFinalOrderDate('');
       setFinalOrderSummary('');
-      setRemarks('Notice issued to Tahsildar and Respondents.');
+      setRemarks('');
       setAttachedFileBase64(null);
       setAttachedFileName('');
 
-      // Initial history row
-      setCaseHistory([
-        {
-          id: `CH-${Date.now()}-1`,
-          judgeOfficer: 'Revenue Divisional Officer & SDM, Huzurnagar',
-          businessDate: todayStr,
-          hearingDate: addDays(todayStr, 14),
-          purpose: 'SUMMONS & NOTICE ISSUED',
-          proceedings: 'Appeal admitted. Statutory notices ordered to Tahsildar and private respondents. Call on next hearing date.'
-        }
-      ]);
+      // Fresh empty case history
+      setCaseHistory([]);
     }
   }, [caseToEdit, isOpen]);
 
@@ -291,14 +329,26 @@ export const AppealCaseModal: React.FC<AppealCaseModalProps> = ({
         }
       }
 
+      const finalAppealType = isManualAppealEntry
+        ? (appealType.trim() || 'Other Revenue Appeal')
+        : appealType;
+
+      let finalSection = bhuBharatiActSection.trim();
+      if (appealType === 'Other Revenue Appeal' && otherSectionDetail.trim()) {
+        finalSection = otherSectionDetail.trim();
+      }
+      if (!finalSection) {
+        finalSection = finalAppealType;
+      }
+
       const record: AppealCase = {
         id: caseToEdit ? caseToEdit.id : Date.now(),
         caseNo: caseNo.trim(),
         registrationNo: registrationNo.trim(),
         registrationDate: registrationDate || filingDate || todayStr,
         cnrNumber: cnrNumber.trim(),
-        appealType,
-        bhuBharatiActSection: bhuBharatiActSection.trim(),
+        appealType: finalAppealType,
+        bhuBharatiActSection: finalSection,
         mandal,
         village: village || (MANDAL_VILLAGES[mandal]?.[0] || ''),
         surveyNo: surveyNo.trim(),
@@ -451,20 +501,122 @@ export const AppealCaseModal: React.FC<AppealCaseModalProps> = ({
             {/* Row 2: Appeal Under Act & STRICT FILING DATE */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">
-                  Appeal Under Act / Subject <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={appealType}
-                  onChange={(e) => setAppealType(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none font-semibold text-blue-900"
-                >
-                  {APPEAL_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-slate-700 font-bold text-xs">
+                    Appeal Under Act / Subject <span className="text-red-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !isManualAppealEntry;
+                      setIsManualAppealEntry(next);
+                      if (next && appealType === 'Other Revenue Appeal') {
+                        setAppealType('');
+                      }
+                    }}
+                    className="text-[10.5px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md transition flex items-center gap-1 cursor-pointer"
+                    title="Toggle between Dropdown List and Normal Direct Entry"
+                  >
+                    {isManualAppealEntry ? (
+                      <span>📋 Select from List</span>
+                    ) : (
+                      <span>✍️ Normal Entry / Text Input</span>
+                    )}
+                  </button>
+                </div>
+
+                {isManualAppealEntry ? (
+                  <div>
+                    <input
+                      type="text"
+                      list="appeal-types-datalist"
+                      placeholder="Type Act / Section / Subject (e.g. Tenancy Act Sec 90, WALTA Sec 19)"
+                      value={appealType}
+                      onChange={(e) => {
+                        setAppealType(e.target.value);
+                        setBhuBharatiActSection(e.target.value);
+                      }}
+                      className="w-full px-3 py-2 bg-white border-2 border-blue-400 rounded-lg focus:border-blue-600 focus:outline-none font-bold text-blue-950 text-xs shadow-xs"
+                      autoFocus
+                    />
+                    <datalist id="appeal-types-datalist">
+                      {APPEAL_TYPES.map((t) => (
+                        <option key={t} value={t} />
+                      ))}
+                    </datalist>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Direct text entry enabled. You can enter any custom Act, Section, or appeal subject freely.
+                    </p>
+                  </div>
+                ) : (
+                  <select
+                    value={appealType}
+                    onChange={(e) => handleAppealTypeChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none font-semibold text-blue-900 text-xs"
+                  >
+                    {APPEAL_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {/* Instant Section Entry Card when Other Revenue Appeal is clicked/selected */}
+                {!isManualAppealEntry && appealType === 'Other Revenue Appeal' && (
+                  <div className="mt-2.5 p-3 bg-amber-50/95 border-2 border-amber-400 rounded-xl space-y-2 animate-in fade-in zoom-in-95 duration-150 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                        <Scale className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Section &amp; Act Details <span className="text-red-600">*</span></span>
+                      </label>
+                      <span className="text-[9.5px] bg-amber-200 text-amber-950 font-bold px-1.5 py-0.5 rounded">
+                        Required for Other Appeals
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Tenancy Act Sec 90 / Land Acquisition Sec 64 / WALTA Act 2002"
+                      value={otherSectionDetail}
+                      onChange={(e) => {
+                        setOtherSectionDetail(e.target.value);
+                        setBhuBharatiActSection(e.target.value);
+                      }}
+                      className="w-full px-3 py-1.5 bg-white border border-amber-400 rounded-lg focus:border-amber-600 focus:ring-2 focus:ring-amber-200 focus:outline-none font-bold text-xs text-slate-900 shadow-inner"
+                      autoFocus
+                    />
+                    <div>
+                      <div className="text-[10px] font-bold text-amber-900 mb-1">
+                        Quick Section Presets:
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {[
+                          'Tenancy Act 1950 Sec 90',
+                          'Inams Abolition 1955 Sec 24',
+                          'Assigned Lands POT Act 9/1977 Sec 4',
+                          'Land Acquisition Act 2013 Sec 64',
+                          'AP ROR Act 1971 Sec 5-B',
+                          'WALTA Act 2002 Sec 19',
+                          'Land Encroachment Act 1905',
+                          'Alienation / Mutation Appeal',
+                        ].map((preset) => (
+                          <button
+                            type="button"
+                            key={preset}
+                            onClick={() => {
+                              setOtherSectionDetail(preset);
+                              setBhuBharatiActSection(preset);
+                            }}
+                            className="text-[9.5px] bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded-md font-semibold transition cursor-pointer shadow-2xs hover:border-amber-500"
+                          >
+                            + {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* STRICT FILING DATE: NO FUTURE DATE ALLOWED */}
@@ -506,30 +658,55 @@ export const AppealCaseModal: React.FC<AppealCaseModalProps> = ({
               </div>
             </div>
 
-            {/* Bhu Bharati Act Specific Statutory Provision */}
+            {/* Statutory Provision / Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-blue-50/50 p-2.5 rounded-lg border border-blue-200">
               <div>
                 <label className="block text-blue-950 font-bold mb-1">
-                  Bhu Bharati Act 2025 Statutory Provision / Section
+                  {appealType.includes('Bhu Bharati') || appealType.includes('Sadabainama')
+                    ? 'Bhu Bharati Act 2025 Statutory Provision / Section'
+                    : 'Revenue Act / Statutory Provision / Section'}
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Section 15(1) read with Rule 14 & Section 4(5)"
+                  placeholder={
+                    appealType.includes('Bhu Bharati')
+                      ? 'e.g. Section 15(1) read with Rule 14 & Section 4(5)'
+                      : 'e.g. Section 90 / Section 64 / Section 4A & 4B'
+                  }
                   value={bhuBharatiActSection}
-                  onChange={(e) => setBhuBharatiActSection(e.target.value)}
+                  onChange={(e) => {
+                    setBhuBharatiActSection(e.target.value);
+                    if (appealType === 'Other Revenue Appeal') {
+                      setOtherSectionDetail(e.target.value);
+                    }
+                  }}
                   className="w-full px-3 py-1.5 bg-white border border-blue-300 rounded-md focus:border-blue-500 focus:outline-none font-semibold text-xs text-blue-900"
                 />
                 <div className="flex flex-wrap gap-1 mt-1.5">
-                  {[
-                    'Sec 15(1) r/w Rule 14 (RoR Rectification)',
-                    'Sec 6(1) & (5) (Sadabainama Regularisation)',
-                    'Sec 15(1) r/w Sec 5 (Mutation Appeal)',
-                    'Sec 15(1) r/w Sec 9 & 10 (Passbook Issue)',
-                  ].map((preset) => (
+                  {(appealType.includes('Bhu Bharati') || appealType.includes('Sadabainama')
+                    ? [
+                        'Sec 15(1) r/w Rule 14 (RoR Rectification)',
+                        'Sec 6(1) & (5) (Sadabainama Regularisation)',
+                        'Sec 15(1) r/w Sec 5 (Mutation Appeal)',
+                        'Sec 15(1) r/w Sec 9 & 10 (Passbook Issue)',
+                      ]
+                    : [
+                        'Section 90 of Tenancy & Agrl Lands Act, 1950',
+                        'Section 24 of Inams Abolition Act, 1955',
+                        'Section 4A / 4B of Assigned Lands (POT) Act 9/1977',
+                        'Section 64 of RFCTLARR (Land Acquisition) Act, 2013',
+                        'Section 19 of WALTA Act, 2002',
+                      ]
+                  ).map((preset) => (
                     <button
                       type="button"
                       key={preset}
-                      onClick={() => setBhuBharatiActSection(preset)}
+                      onClick={() => {
+                        setBhuBharatiActSection(preset);
+                        if (appealType === 'Other Revenue Appeal') {
+                          setOtherSectionDetail(preset);
+                        }
+                      }}
                       className="text-[9.5px] bg-white hover:bg-blue-100 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded transition cursor-pointer"
                     >
                       {preset}

@@ -72,7 +72,6 @@ export const ChangeStaffPasswordModal: React.FC<ChangeStaffPasswordModalProps> =
             </div>
             <div>
               <span>Change Password</span>
-              <span className="text-[11px] text-amber-300 font-normal ml-1.5">(పాస్‌వర్డ్ మార్చుకోండి)</span>
             </div>
           </h3>
           <button

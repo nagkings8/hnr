@@ -298,55 +298,11 @@ export function exportOutwardToCSV(outwardData: OutwardDespatch[]): void {
   document.body.removeChild(link);
 }
 
-export const INITIAL_FILES: BhuFile[] = [
-  {
-    id: 1725180000000,
-    appNumber: "2600100452",
-    applicantName: "Kamma Srinivas Rao",
-    mandal: "HUZURNAGAR",
-    village: "Huzur Nagar",
-    surveyNo: "345/A1",
-    module: "Pending Mutation",
-    receivedDate: "2026-08-15",
-    status: "Pending at RDO",
-    remarks: "Verification of joint pattadar consents",
-    history: [{
-      date: "2026-08-15",
-      action: "File Received from MRO",
-      from: "MRO Huzurnagar",
-      to: "D Section, RDO Office",
-      user: "Staff",
-      remarks: "Initial Receipt"
-    }]
-  }
-];
+export const INITIAL_FILES: BhuFile[] = [];
 
-export const INITIAL_INWARD: InwardTapal[] = [
-  {
-    id: 1725200000000,
-    inwardNo: "INW/2026/842",
-    receivedDate: "2026-08-28",
-    sender: "Tahsildar Garide Palle",
-    mandal: "GARIDE PALLE",
-    subject: "Report on assigned land encroachment in Survey No. 412",
-    seat: "D Section / Seat-2",
-    status: "Under Scrutiny"
-  }
-];
+export const INITIAL_INWARD: InwardTapal[] = [];
 
-export const INITIAL_OUTWARD: OutwardDespatch[] = [
-  {
-    id: 1725210000000,
-    outwardNo: "D/644/2026",
-    outwardDate: "2026-08-31",
-    entryType: "INWARD_LINKED",
-    linkedInwardNo: "INW/2026/842",
-    sentTo: "Forwarded to Collectorate",
-    subject: "Submission of inquiry report regarding Land Nature verification",
-    mode: "Official Email / e-Office",
-    remarks: "Forwarded with RDO Huzurnagar recommendation"
-  }
-];
+export const INITIAL_OUTWARD: OutwardDespatch[] = [];
 
 export const INITIAL_ADMIN_PROFILE: AdminProfile = {
   id: 999,

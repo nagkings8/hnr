@@ -35,16 +35,29 @@ export const OutwardModal: React.FC<OutwardModalProps> = ({
   const [fileName, setFileName] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
+  const handleReset = () => {
+    setEntryType('INWARD_LINKED');
+    setSelectedInwardId('');
+    setMarkInwardDisposed(true);
+    setOutwardNo('');
+    setOutwardDate(getTodayDateString());
+    setSentTo('');
+    setRecipientDetails('');
+    setMode('Official Email / e-Office');
+    setPriority('Regular');
+    setSubject('');
+    setRemarks('');
+    setBase64File('');
+    setFileName('');
+  };
+
   useEffect(() => {
     if (isOpen) {
-      setOutwardDate(getTodayDateString());
+      handleReset();
       if (preselectedInwardId) {
         setEntryType('INWARD_LINKED');
         setSelectedInwardId(String(preselectedInwardId));
         handleInwardSelect(String(preselectedInwardId));
-      } else {
-        setEntryType('INWARD_LINKED');
-        setSelectedInwardId('');
       }
     }
   }, [isOpen, preselectedInwardId]);
