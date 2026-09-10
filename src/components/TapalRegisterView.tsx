@@ -13,6 +13,7 @@ interface TapalRegisterViewProps {
   onNewInward: () => void;
   onEditInward?: (tapal: InwardTapal) => void;
   onNewOutward: (linkedInwardId?: number) => void;
+  onEditOutward?: (outward: OutwardDespatch) => void;
   onUpdateInwardStatus: (tapal: InwardTapal) => void;
   onViewInwardPdf: (tapal: InwardTapal) => void;
   onViewOutwardPdf: (outward: OutwardDespatch) => void;
@@ -29,6 +30,7 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
   onNewInward,
   onEditInward,
   onNewOutward,
+  onEditOutward,
   onUpdateInwardStatus,
   onViewInwardPdf,
   onViewOutwardPdf,
@@ -797,17 +799,30 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
                         {o.remarks || '-'}
                       </td>
                       <td className="py-2.5 px-3 text-center">
-                        {isAdmin ? (
-                          <button
-                            onClick={() => onDeleteOutward(o)}
-                            className="bg-rose-600 hover:bg-rose-700 text-white font-bold p-1 rounded text-[11px] transition cursor-pointer shadow-xs"
-                            title="Delete Despatch Record (Administrator Only)"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        ) : (
-                          <span className="text-[11px] text-slate-400">-</span>
-                        )}
+                        <div className="flex items-center justify-center gap-1">
+                          {!isViewer && onEditOutward && (
+                            <button
+                              onClick={() => onEditOutward(o)}
+                              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-2 py-1 rounded text-[11px] inline-flex items-center gap-1 transition cursor-pointer shadow-xs"
+                              title="Edit Outward Despatch Record"
+                            >
+                              <RefreshCw className="w-2.5 h-2.5" />
+                              <span>Edit</span>
+                            </button>
+                          )}
+                          {isAdmin && (
+                            <button
+                              onClick={() => onDeleteOutward(o)}
+                              className="bg-rose-600 hover:bg-rose-700 text-white font-bold p-1 rounded text-[11px] transition cursor-pointer shadow-xs"
+                              title="Delete Despatch Record (Administrator Only)"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                          {isViewer && !isAdmin && (
+                            <span className="text-[11px] text-slate-400">-</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

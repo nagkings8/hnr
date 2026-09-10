@@ -8,7 +8,8 @@ interface OutwardModalProps {
   onClose: () => void;
   inwards: InwardTapal[];
   preselectedInwardId?: number | null;
-  onSave: (outward: OutwardDespatch, shouldDisposeInwardId?: number | null) => void;
+  editingOutward?: OutwardDespatch | null;
+  onSave: (outward: OutwardDespatch, shouldDisposeInwardId?: number | null, isEdit?: boolean) => void;
   onShowToast: (msg: string) => void;
 }
 
@@ -17,9 +18,11 @@ export const OutwardModal: React.FC<OutwardModalProps> = ({
   onClose,
   inwards,
   preselectedInwardId = null,
+  editingOutward = null,
   onSave,
   onShowToast,
 }) => {
+  const isEditMode = !!editingOutward;
   const [entryType, setEntryType] = useState<'INWARD_LINKED' | 'FRESH'>('INWARD_LINKED');
   const [selectedInwardId, setSelectedInwardId] = useState<string>('');
   const [markInwardDisposed, setMarkInwardDisposed] = useState<boolean>(true);
@@ -53,14 +56,44 @@ export const OutwardModal: React.FC<OutwardModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      handleReset();
-      if (preselectedInwardId) {
-        setEntryType('INWARD_LINKED');
-        setSelectedInwardId(String(preselectedInwardId));
-        handleInwardSelect(String(preselectedInwardId));
+      if (editingOutward) {
+        setEntryType(editingOutward.entryType || 'FRESH');
+        setOutwardNo(editingOutward.outwardNo || '');
+        setOutwardDate(editingOutward.outwardDate || getTodayDateString());
+
+        const fullSentTo = editingOutward.sentTo || '';
+        const match = fullSentTo.match(/^([^(]+?)\s*\(([^)]+)\)$/);
+        if (match) {
+          setSentTo(match[1].trim());
+          setRecipientDetails(match[2].trim());
+        } else {
+          setSentTo(fullSentTo);
+          setRecipientDetails('');
+        }
+
+        setMode(editingOutward.mode || 'Official Email / e-Office');
+        setPriority(editingOutward.priority || 'Regular');
+        setSubject(editingOutward.subject || '');
+        setRemarks(editingOutward.remarks || '');
+        setBase64File(editingOutward.fileAttachment || '');
+        setFileName(editingOutward.hasAttachment ? 'Existing Attached Document' : '');
+
+        if (editingOutward.linkedInwardNo) {
+          const linked = inwards.find((i) => i.inwardNo === editingOutward.linkedInwardNo);
+          if (linked) {
+            setSelectedInwardId(String(linked.id));
+          }
+        }
+      } else {
+        handleReset();
+        if (preselectedInwardId) {
+          setEntryType('INWARD_LINKED');
+          setSelectedInwardId(String(preselectedInwardId));
+          handleInwardSelect(String(preselectedInwardId));
+        }
       }
     }
-  }, [isOpen, preselectedInwardId]);
+  }, [isOpen, preselectedInwardId, editingOutward]);
 
   if (!isOpen) return null;
 
@@ -124,11 +157,14 @@ export const OutwardModal: React.FC<OutwardModalProps> = ({
       ? `${sentTo} (${recipientDetails.trim()})`
       : sentTo;
 
-    const newId = Date.now();
-    const outAttKey = `out_${newId}`;
+    const outwardId = isEditMode && editingOutward ? editingOutward.id : Date.now();
+    const outAttKey = `out_${outwardId}`;
     let stampedFile = base64File;
 
-    if (base64File) {
+    // Check if new file was attached
+    const isNewFile = base64File && (!isEditMode || base64File !== editingOutward?.fileAttachment);
+
+    if (isNewFile) {
       try {
         const stampText = `OUTWARD DESPATCH: ${outwardNo.trim()} | DATE: ${outwardDate} | TO: ${fullSentTo.substring(
           0,
@@ -142,25 +178,28 @@ export const OutwardModal: React.FC<OutwardModalProps> = ({
     }
 
     const newOutward: OutwardDespatch = {
-      id: newId,
+      id: outwardId,
       outwardNo: outwardNo.trim(),
       outwardDate,
       entryType,
-      linkedInwardNo,
+      linkedInwardNo: isEditMode && editingOutward ? (editingOutward.linkedInwardNo ?? linkedInwardNo) : linkedInwardNo,
       sentTo: fullSentTo,
       subject: subject.trim(),
       mode,
       priority,
       remarks: remarks.trim(),
-      hasAttachment: !!stampedFile,
-      attachmentKey: stampedFile ? outAttKey : null,
+      hasAttachment: !!stampedFile || !!(isEditMode && editingOutward?.hasAttachment),
+      attachmentKey: stampedFile ? outAttKey : (isEditMode ? (editingOutward?.attachmentKey ?? null) : null),
+      fileAttachment: stampedFile || (isEditMode ? editingOutward?.fileAttachment : undefined),
     };
 
     setIsSaving(false);
-    onSave(newOutward, disposeId);
+    onSave(newOutward, disposeId, isEditMode);
     onClose();
     onShowToast(
-      stampedFile
+      isEditMode
+        ? 'Outward despatch record updated successfully!'
+        : stampedFile
         ? 'Outward despatch & date-stamped document saved successfully!'
         : 'Outward despatch recorded successfully!'
     );
@@ -170,7 +209,16 @@ export const OutwardModal: React.FC<OutwardModalProps> = ({
     <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 overflow-y-auto">
       <div className="bg-white border border-slate-200 rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden my-6">
         <div className="bg-[#061122] text-white px-5 py-3.5 flex justify-between items-center border-b-2 border-amber-500">
-          <h3 className="font-bold text-base text-white">Record Outward Despatch</h3>
+          <div className="flex items-center gap-2">
+            {isEditMode && (
+              <span className="bg-amber-500 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded tracking-wider uppercase">
+                EDIT
+              </span>
+            )}
+            <h3 className="font-bold text-base text-white">
+              {isEditMode ? `Edit Outward Despatch #${outwardNo || ''}` : 'Record Outward Despatch'}
+            </h3>
+          </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition cursor-pointer">
             <X className="w-5 h-5" />
           </button>
@@ -371,7 +419,7 @@ export const OutwardModal: React.FC<OutwardModalProps> = ({
               disabled={isSaving}
               className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-1.5 rounded-md font-bold transition cursor-pointer shadow-xs"
             >
-              {isSaving ? 'Recording...' : 'Record Despatch'}
+              {isSaving ? 'Saving...' : isEditMode ? 'Update Despatch' : 'Record Despatch'}
             </button>
           </div>
         </form>

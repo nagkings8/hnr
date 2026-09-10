@@ -110,6 +110,7 @@ export default function App() {
 
   const [isOutwardModalOpen, setIsOutwardModalOpen] = useState(false);
   const [preselectedInwardId, setPreselectedInwardId] = useState<number | null>(null);
+  const [editingOutward, setEditingOutward] = useState<OutwardDespatch | null>(null);
 
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [pdfData, setPdfData] = useState<string | null>(null);
@@ -413,23 +414,44 @@ export default function App() {
 
   // Outward Despatch Handlers
   const handleOpenOutward = (linkedId?: number) => {
+    setEditingOutward(null);
     setPreselectedInwardId(linkedId || null);
     setIsOutwardModalOpen(true);
   };
 
+  const handleEditOutward = (outward: OutwardDespatch) => {
+    setEditingOutward(outward);
+    setPreselectedInwardId(null);
+    setIsOutwardModalOpen(true);
+  };
+
   const handleSaveOutward = (
-    newOutward: OutwardDespatch,
-    shouldDisposeInwardId?: number | null
+    savedOutward: OutwardDespatch,
+    shouldDisposeInwardId?: number | null,
+    isEdit?: boolean
   ) => {
-    const updatedOutwards = [newOutward, ...outwards];
+    let updatedOutwards: OutwardDespatch[];
+    if (isEdit) {
+      updatedOutwards = outwards.map((o) =>
+        o.id === savedOutward.id ? savedOutward : o
+      );
+      logActivity(
+        'Tapal Outward',
+        savedOutward.outwardNo,
+        'EDIT',
+        `Updated Outward Despatch #${savedOutward.outwardNo} to ${savedOutward.sentTo}. Subject: ${savedOutward.subject}`
+      );
+    } else {
+      updatedOutwards = [savedOutward, ...outwards];
+      logActivity(
+        'Tapal Outward',
+        savedOutward.outwardNo,
+        'ENTRY',
+        `Official outward correspondence dispatched to ${savedOutward.sentTo} via ${savedOutward.mode}. Subject: ${savedOutward.subject}.`
+      );
+    }
     setOutwards(updatedOutwards);
     safeSaveLocalStorage('rdo_outward', updatedOutwards);
-    logActivity(
-      'Tapal Outward',
-      newOutward.outwardNo,
-      'ENTRY',
-      `Official outward correspondence dispatched to ${newOutward.sentTo} via ${newOutward.mode}. Subject: ${newOutward.subject}.`
-    );
 
     if (shouldDisposeInwardId) {
       const updatedInwards = inwards.map((t) =>
@@ -438,6 +460,7 @@ export default function App() {
       setInwards(updatedInwards);
       safeSaveLocalStorage('rdo_inward_tapal', updatedInwards);
     }
+    setEditingOutward(null);
   };
 
   const handleViewOutwardPdf = async (outward: OutwardDespatch) => {
@@ -738,6 +761,7 @@ export default function App() {
             }}
             onEditInward={handleEditInward}
             onNewOutward={(linkedId) => handleOpenOutward(linkedId)}
+            onEditOutward={handleEditOutward}
             onUpdateInwardStatus={handleUpdateInwardStatus}
             onViewInwardPdf={handleViewInwardPdf}
             onViewOutwardPdf={handleViewOutwardPdf}
@@ -845,9 +869,11 @@ export default function App() {
         onClose={() => {
           setIsOutwardModalOpen(false);
           setPreselectedInwardId(null);
+          setEditingOutward(null);
         }}
         inwards={inwards}
         preselectedInwardId={preselectedInwardId}
+        editingOutward={editingOutward}
         onSave={handleSaveOutward}
         onShowToast={showToast}
       />

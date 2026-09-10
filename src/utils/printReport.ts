@@ -125,11 +125,13 @@ export const generatePrintHtml = (payload: PrintReportPayload, autoPrint = false
         vertical-align: middle !important;
         word-break: break-word !important;
         overflow-wrap: break-word !important;
+      }
+      td {
         color: #000000 !important;
       }
       th {
-        background-color: #0c2a47;
-        color: #ffffff;
+        background-color: #ffffff;
+        color: #000000;
         font-weight: 900;
         font-size: ${landscape ? '9pt' : '10.5pt'};
         text-align: center;

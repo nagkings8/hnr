@@ -652,14 +652,9 @@ export const SadabainamaView: React.FC<SadabainamaViewProps> = ({
 
     const ths = parsedAbstract.header.map((colName: any, idx: number) => {
       const colType = getColType(colName, idx);
-      const bg = colType === 'tahsildarPending' 
-        ? '#134674; color: #ffff00' 
-        : colType === 'rdoPending' 
-        ? '#134674; color: #fed7aa' 
-        : '#164875; color: #ffffff';
       const isMandal = colType === 'mandal';
       const align = isMandal ? 'text-align: left; padding-left: 8px; white-space: nowrap !important;' : 'text-align: center;';
-      return `<th style="background: ${bg}; font-size: 9.5px; padding: 5px 3px; border: 1px solid #94a3b8; ${align}">${colName}</th>`;
+      return `<th style="background-color: #ffffff !important; background: #ffffff !important; color: #000000 !important; font-size: 9.5px; font-weight: 800; padding: 6px 3px; border: 1px solid #334155 !important; ${align}">${colName}</th>`;
     }).join('');
 
     const trs = filteredAbstractDataRows.map((row: any[]) => {
@@ -767,7 +762,7 @@ export const SadabainamaView: React.FC<SadabainamaViewProps> = ({
     `;
 
     const ths = header.map((col: any) => 
-      `<th style="background-color: #164875 !important; color: #ffffff !important; padding: 4px 2px !important; border: 1px solid #94a3b8 !important; font-size: 8px !important; font-weight: 800; text-align: center; line-height: 1.2;">${col}</th>`
+      `<th style="background-color: #ffffff !important; background: #ffffff !important; color: #000000 !important; padding: 4px 2px !important; border: 1px solid #334155 !important; font-size: 8px !important; font-weight: 800; text-align: center; line-height: 1.2;">${col}</th>`
     ).join('');
 
     const trs = dataRows.map((row: any[]) => {
