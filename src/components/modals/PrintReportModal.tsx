@@ -2,6 +2,8 @@ import React, { useRef, useState } from 'react';
 import { PrintReportPayload, generatePrintHtml } from '../../utils/printReport';
 import { RDO_LOGO_BASE64 } from '../../utils/logoBase64';
 import { X, Printer, ExternalLink, Download, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface PrintReportModalProps {
   isOpen: boolean;
@@ -111,14 +113,6 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
     setIsGeneratingPdf(true);
 
     try {
-      const w = window as any;
-      if (!w.html2canvas || !w.jspdf) {
-        onShowToast('PDF engine initializing, opening new print tab instead...');
-        handleOpenInNewWindow();
-        setIsGeneratingPdf(false);
-        return;
-      }
-
       const element = previewRef.current;
       const scrollParent = element.parentElement;
       const originalScrollTop = scrollParent ? scrollParent.scrollTop : 0;
@@ -144,7 +138,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
 
       const captureHeight = element.scrollHeight;
 
-      const canvas = await w.html2canvas(element, {
+      const canvas = await html2canvas(element, {
         scale: 2,
         backgroundColor: '#ffffff',
         useCORS: true,
@@ -169,7 +163,6 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
         scrollParent.scrollTop = originalScrollTop;
       }
 
-      const { jsPDF } = w.jspdf;
       const pdf = new jsPDF(landscape ? 'l' : 'p', 'mm', 'a4');
       
       const pageWidth = pdf.internal.pageSize.getWidth();
@@ -504,35 +497,35 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Primary Print Button */}
-            <button
-              onClick={handleBrowserPrint}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-              title="Print directly using browser dialog (Ctrl+P)"
-            >
-              <Printer className="w-4 h-4 text-sky-200" />
-              <span>Print (Ctrl+P)</span>
-            </button>
-
-            {/* Guaranteed New Window Print */}
-            <button
-              onClick={handleOpenInNewWindow}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-              title="Open standalone document in new window to print without iframe restrictions"
-            >
-              <ExternalLink className="w-4 h-4 text-emerald-200" />
-              <span>Open in New Tab to Print</span>
-            </button>
-
-            {/* Save as PDF */}
+            {/* Primary Action: Direct Download PDF */}
             <button
               onClick={handleDownloadPdf}
               disabled={isGeneratingPdf}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer disabled:opacity-50"
-              title="Download official PDF copy"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5 shadow-md transition cursor-pointer disabled:opacity-50"
+              title="Download official PDF file directly to device"
             >
-              <Download className="w-4 h-4" />
-              <span>{isGeneratingPdf ? 'Generating PDF...' : 'Save as PDF'}</span>
+              <Download className="w-4 h-4 text-emerald-100" />
+              <span>{isGeneratingPdf ? 'Generating PDF...' : 'Download Official PDF'}</span>
+            </button>
+
+            {/* Print directly */}
+            <button
+              onClick={handleBrowserPrint}
+              className="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold text-xs px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+              title="Print directly using printer / browser dialog"
+            >
+              <Printer className="w-4 h-4 text-slate-300" />
+              <span>Print</span>
+            </button>
+
+            {/* Open in New Window Print */}
+            <button
+              onClick={handleOpenInNewWindow}
+              className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+              title="Open standalone document in new window"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-slate-300" />
+              <span className="hidden sm:inline">Open in Tab</span>
             </button>
 
             {/* Standalone HTML File */}

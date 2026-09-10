@@ -114,26 +114,25 @@ export const generatePrintHtml = (payload: PrintReportPayload, autoPrint = false
       table {
         width: 100% !important;
         border-collapse: collapse !important;
-        table-layout: fixed !important;
-        font-size: ${landscape ? '9pt' : '10.5pt'} !important;
-        margin-bottom: ${landscape ? '10px' : '16px'} !important;
+        font-size: ${landscape ? '8.5pt' : '10pt'};
+        margin-bottom: ${landscape ? '8px' : '14px'} !important;
         word-wrap: break-word !important;
         overflow-wrap: break-word !important;
       }
       th, td {
-        border: 1.2px solid #334155 !important;
-        padding: ${landscape ? '5px 4px' : '7px 9px'} !important;
-        vertical-align: top !important;
+        border: 1px solid #334155 !important;
+        padding: ${landscape ? '5px 4px' : '7px 9px'};
+        vertical-align: middle !important;
         word-break: break-word !important;
         overflow-wrap: break-word !important;
         color: #000000 !important;
       }
       th {
-        background-color: #0c2a47 !important;
-        color: #ffffff !important;
-        font-weight: 900 !important;
-        font-size: ${landscape ? '9.5pt' : '11pt'} !important;
-        text-align: center !important;
+        background-color: #0c2a47;
+        color: #ffffff;
+        font-weight: 900;
+        font-size: ${landscape ? '9pt' : '10.5pt'};
+        text-align: center;
         letter-spacing: 0.2px;
       }
       table {

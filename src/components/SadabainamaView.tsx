@@ -633,6 +633,23 @@ export const SadabainamaView: React.FC<SadabainamaViewProps> = ({
   }, [parsedDetailedReport.dataRows, parsedDetailedReport.header, reportSearch, selectedDetailFilter, detailedStats.appMap]);
 
   const handlePrintAbstract = () => {
+    const colgroup = `
+      <colgroup>
+        <col style="width: 3.5%;" />
+        <col style="width: 19%;" />
+        <col style="width: 7.75%;" />
+        <col style="width: 7.75%;" />
+        <col style="width: 7.75%;" />
+        <col style="width: 7.75%;" />
+        <col style="width: 7.75%;" />
+        <col style="width: 7.75%;" />
+        <col style="width: 7.75%;" />
+        <col style="width: 7.75%;" />
+        <col style="width: 7.75%;" />
+        <col style="width: 7.75%;" />
+      </colgroup>
+    `;
+
     const ths = parsedAbstract.header.map((colName: any, idx: number) => {
       const colType = getColType(colName, idx);
       const bg = colType === 'tahsildarPending' 
@@ -640,7 +657,9 @@ export const SadabainamaView: React.FC<SadabainamaViewProps> = ({
         : colType === 'rdoPending' 
         ? '#134674; color: #fed7aa' 
         : '#164875; color: #ffffff';
-      return `<th style="background: ${bg}; font-size: 10px; padding: 6px; border: 1px solid #94a3b8;">${colName}</th>`;
+      const isMandal = colType === 'mandal';
+      const align = isMandal ? 'text-align: left; padding-left: 8px; white-space: nowrap !important;' : 'text-align: center;';
+      return `<th style="background: ${bg}; font-size: 9.5px; padding: 5px 3px; border: 1px solid #94a3b8; ${align}">${colName}</th>`;
     }).join('');
 
     const trs = filteredAbstractDataRows.map((row: any[]) => {
@@ -656,11 +675,11 @@ export const SadabainamaView: React.FC<SadabainamaViewProps> = ({
           : isRdoPending 
           ? 'background-color: #ffedd5 !important; font-weight: 900; text-align: center;' 
           : isMandal 
-          ? 'text-align: left; font-weight: 700; padding-left: 8px;' 
+          ? 'text-align: left; font-weight: 800; padding-left: 8px; white-space: nowrap !important; font-size: 9.5px;' 
           : isSno 
           ? 'text-align: center; font-weight: 700;' 
           : 'text-align: center; font-weight: 600;';
-        return `<td style="${style} padding: 5px; border: 1px solid #94a3b8;">${val}</td>`;
+        return `<td style="${style} padding: 4.5px 3px; border: 1px solid #94a3b8;">${val}</td>`;
       }).join('');
       return `<tr>${tds}</tr>`;
     }).join('');
@@ -677,7 +696,8 @@ export const SadabainamaView: React.FC<SadabainamaViewProps> = ({
           : isRdoPending 
           ? '#fed7aa' 
           : '#e9ecf5';
-        return `<td style="background-color: ${bg} !important; font-weight: 900; text-align: ${cIdx === 1 ? 'left' : 'center'}; padding: 6px; border: 1px solid #64748b;">${val}</td>`;
+        const align = cIdx === 1 ? 'text-align: left; padding-left: 8px; white-space: nowrap !important;' : 'text-align: center;';
+        return `<td style="background-color: ${bg} !important; font-weight: 900; ${align} padding: 6px 3px; border: 1px solid #64748b;">${val}</td>`;
       }).join('');
       totalTr = `<tfoot><tr style="border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a;">${tds}</tr></tfoot>`;
     }
@@ -691,7 +711,8 @@ export const SadabainamaView: React.FC<SadabainamaViewProps> = ({
     `;
 
     const tableHtml = `
-      <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 9.5px;">
+        ${colgroup}
         <thead>
           ${titleTh}
           <tr>${ths}</tr>
@@ -706,6 +727,7 @@ export const SadabainamaView: React.FC<SadabainamaViewProps> = ({
       subtitle: 'Revenue Divisional Office, Huzurnagar • Suryapet District',
       period: '05-09-2026 17:56:04',
       landscape: true,
+      fileName: 'Sadabainama_Abstract_Report',
     });
   };
 
@@ -717,16 +739,35 @@ export const SadabainamaView: React.FC<SadabainamaViewProps> = ({
     const header = parsedDetailedReport.header;
     const dataRows = filteredDetailedDataRows;
 
+    const detailedColgroup = `
+      <colgroup>
+        <col style="width: 3%;" />
+        <col style="width: 8.5%;" />
+        <col style="width: 8.5%;" />
+        <col style="width: 8.5%;" />
+        <col style="width: 5%;" />
+        <col style="width: 6%;" />
+        <col style="width: 5.5%;" />
+        <col style="width: 10%;" />
+        <col style="width: 9%;" />
+        <col style="width: 9%;" />
+        <col style="width: 7%;" />
+        <col style="width: 9.5%;" />
+        <col style="width: 6.5%;" />
+        <col style="width: 4%;" />
+      </colgroup>
+    `;
+
     const titleTh = `
       <tr>
-        <th colspan="${header.length}" style="background-color: #134674 !important; color: #ffffff !important; font-size: 13px; font-weight: 900; text-align: center; padding: 9px; border: 1px solid #94a3b8;">
+        <th colspan="${header.length}" style="background-color: #134674 !important; color: #ffffff !important; font-size: 12px; font-weight: 900; text-align: center; padding: 7px; border: 1px solid #94a3b8;">
           ${parsedDetailedReport.reportTitle}
         </th>
       </tr>
     `;
 
     const ths = header.map((col: any) => 
-      `<th style="background-color: #164875 !important; color: #ffffff !important; padding: 6px; border: 1px solid #94a3b8; font-weight: 800; text-align: center;">${col}</th>`
+      `<th style="background-color: #164875 !important; color: #ffffff !important; padding: 4px 2px !important; border: 1px solid #94a3b8 !important; font-size: 8px !important; font-weight: 800; text-align: center; line-height: 1.2;">${col}</th>`
     ).join('');
 
     const trs = dataRows.map((row: any[]) => {
@@ -739,13 +780,14 @@ export const SadabainamaView: React.FC<SadabainamaViewProps> = ({
           : isPendingRdo 
           ? 'background-color: #ffedd5 !important; font-weight: bold;' 
           : '';
-        return `<td style="padding: 5px; text-align: center; border: 1px solid #94a3b8; ${bg}">${val}</td>`;
+        return `<td style="padding: 3px 2px !important; text-align: center; border: 1px solid #94a3b8 !important; font-size: 7.5px !important; line-height: 1.2; ${bg}">${val}</td>`;
       }).join('');
       return `<tr>${tds}</tr>`;
     }).join('');
 
     const tableHtml = `
-      <table style="width: 100%; border-collapse: collapse; font-size: 9.5px;">
+      <table style="width: 100% !important; border-collapse: collapse !important; font-size: 8px !important;">
+        ${detailedColgroup}
         <thead>
           ${titleTh}
           <tr>${ths}</tr>

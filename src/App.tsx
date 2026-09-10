@@ -29,6 +29,7 @@ import { TapalRegisterView } from './components/TapalRegisterView';
 import { SadabainamaView } from './components/SadabainamaView';
 import { AppealCasesView } from './components/AppealCasesView';
 import { AdminView } from './components/AdminView';
+import { ColorSplashCursor } from './components/ColorSplashCursor';
 import { DEFAULT_SADABAINAMA_ABSTRACT, DEFAULT_SADABAINAMA_REPORT } from './data/sadabainamaData';
 import { INITIAL_APPEAL_CASES } from './data/appealCasesData';
 import { INITIAL_AUDIT_LOGS } from './data/initialAuditLogs';
@@ -103,6 +104,7 @@ export default function App() {
   const [selectedFileForStatus, setSelectedFileForStatus] = useState<BhuFile | null>(null);
 
   const [isInwardModalOpen, setIsInwardModalOpen] = useState(false);
+  const [selectedInwardForEdit, setSelectedInwardForEdit] = useState<InwardTapal | null>(null);
   const [isInwardStatusModalOpen, setIsInwardStatusModalOpen] = useState(false);
   const [selectedInwardForStatus, setSelectedInwardForStatus] = useState<InwardTapal | null>(null);
 
@@ -316,16 +318,33 @@ export default function App() {
   };
 
   // Inward Tapal Handlers
-  const handleSaveInward = (newTapal: InwardTapal) => {
-    const updated = [newTapal, ...inwards];
+  const handleSaveInward = (savedTapal: InwardTapal) => {
+    const exists = inwards.some((t) => t.id === savedTapal.id);
+    let updated: InwardTapal[];
+    if (exists) {
+      updated = inwards.map((t) => (t.id === savedTapal.id ? savedTapal : t));
+      logActivity(
+        'Tapal Inward',
+        savedTapal.inwardNo,
+        'EDIT',
+        `Inward record updated/returned. Sender: ${savedTapal.sender}. Mandal: ${savedTapal.mandal}, Village: ${savedTapal.village || 'General'}. Status: ${savedTapal.status}.`
+      );
+    } else {
+      updated = [savedTapal, ...inwards];
+      logActivity(
+        'Tapal Inward',
+        savedTapal.inwardNo,
+        'ENTRY',
+        `New Inward Tapal received from ${savedTapal.sender} (${savedTapal.mandal || 'GENERAL'}, ${savedTapal.village || 'General'}). Subject: ${savedTapal.subject}.`
+      );
+    }
     setInwards(updated);
     safeSaveLocalStorage('rdo_inward_tapal', updated);
-    logActivity(
-      'Tapal Inward',
-      newTapal.inwardNo,
-      'ENTRY',
-      `New Inward Tapal received from ${newTapal.sender} (${newTapal.mandal || 'GENERAL'}). Subject: ${newTapal.subject}.`
-    );
+  };
+
+  const handleEditInward = (tapal: InwardTapal) => {
+    setSelectedInwardForEdit(tapal);
+    setIsInwardModalOpen(true);
   };
 
   const handleUpdateInwardStatus = (tapal: InwardTapal) => {
@@ -647,7 +666,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100 text-slate-900 font-sans">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 text-slate-900 font-sans antialiased selection:bg-amber-400 selection:text-slate-950">
+      {/* Dynamic Festive Color Splash Cursor Effect */}
+      <ColorSplashCursor />
+
       {/* Locked Official Header & Navigation Bar */}
       <div className="sticky top-0 z-50 w-full shadow-lg bg-[#061122]">
         {/* Official Government Header */}
@@ -710,7 +732,11 @@ export default function App() {
             initialInwardStatus={inwardInitialStatus}
             initialOutwardSentTo={outwardInitialSentTo}
             currentUser={currentUser}
-            onNewInward={() => setIsInwardModalOpen(true)}
+            onNewInward={() => {
+              setSelectedInwardForEdit(null);
+              setIsInwardModalOpen(true);
+            }}
+            onEditInward={handleEditInward}
             onNewOutward={(linkedId) => handleOpenOutward(linkedId)}
             onUpdateInwardStatus={handleUpdateInwardStatus}
             onViewInwardPdf={handleViewInwardPdf}
@@ -793,7 +819,12 @@ export default function App() {
 
       <InwardModal
         isOpen={isInwardModalOpen}
-        onClose={() => setIsInwardModalOpen(false)}
+        onClose={() => {
+          setIsInwardModalOpen(false);
+          setSelectedInwardForEdit(null);
+        }}
+        tapalToEdit={selectedInwardForEdit}
+        existingInwards={inwards}
         onSave={handleSaveInward}
         onShowToast={showToast}
       />

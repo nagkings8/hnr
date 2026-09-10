@@ -32,12 +32,21 @@ export interface InwardTapal {
   receivedDate: string;
   sender: string;
   mandal: string;
+  village?: string;
   subject: string;
-  seat: string;
+  seat?: string;
   status: string;
+  remarks?: string;
+  linkedOutwardNo?: string;
   hasAttachment?: boolean;
   attachmentKey?: string | null;
   fileAttachment?: string;
+  returnHistory?: Array<{
+    date: string;
+    from: string;
+    status: string;
+    remarks?: string;
+  }>;
 }
 
 export interface OutwardDespatch {
@@ -141,6 +150,9 @@ export interface CaseHistoryEntry {
   purpose: string;      // Purpose of Hearing / Stage (e.g. SUMMONS / NOTICE ISSUED, FOR APPEARANCE, FOR COUNTER, FOR ARGUMENTS, FINAL ORDER)
   judgeOfficer?: string;// Presiding Judge/Officer (e.g. "Revenue Divisional Officer & SDM, Huzurnagar")
   proceedings?: string; // Daily Order note (e.g. "Notice issued to Tahsildar & Respondents. Call on 13-08-2026")
+  documentFile?: string;// Uploaded stage document (PDF / Image data URL)
+  documentName?: string;// File name of the attached document
+  uploadedAt?: string;  // Timestamp of upload
 }
 
 export interface AppealCase {

@@ -68,6 +68,11 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
   const [quickNextHearingDate, setQuickNextHearingDate] = useState('');
   const [quickHearingPurpose, setQuickHearingPurpose] = useState('FOR APPEARANCE & COUNTER');
   const [quickProceedings, setQuickProceedings] = useState('');
+  const [stageFileBase64, setStageFileBase64] = useState('');
+  const [stageFileName, setStageFileName] = useState('');
+  const stageFileInputRef = useRef<HTMLInputElement>(null);
+  const existingStageFileInputRef = useRef<HTMLInputElement>(null);
+  const [targetStageIdForUpload, setTargetStageIdForUpload] = useState<string | null>(null);
 
   const excelInputRef = useRef<HTMLInputElement>(null);
 
@@ -562,6 +567,93 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
   };
 
   // Quick Add Hearing & Notice to Selected Case
+  const handleStageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      onShowToast('Stage document exceeds 8MB limit.');
+      e.target.value = '';
+      return;
+    }
+    setStageFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      setStageFileBase64(evt.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadDocToExistingStage = (stageId: string) => {
+    setTargetStageIdForUpload(stageId);
+    if (existingStageFileInputRef.current) {
+      existingStageFileInputRef.current.value = '';
+      existingStageFileInputRef.current.click();
+    }
+  };
+
+  const handleExistingStageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedCaseForDetail || !targetStageIdForUpload) return;
+    if (file.size > 8 * 1024 * 1024) {
+      onShowToast('File size exceeds 8MB.');
+      e.target.value = '';
+      return;
+    }
+    const docName = file.name;
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const base64 = evt.target?.result as string;
+      const history = selectedCaseForDetail.caseHistory || [];
+      const updatedHistory = history.map((entry) => {
+        if (entry.id === targetStageIdForUpload) {
+          return {
+            ...entry,
+            documentFile: base64,
+            documentName: docName,
+            uploadedAt: new Date().toISOString().split('T')[0],
+          };
+        }
+        return entry;
+      });
+
+      const updatedCase: AppealCase = {
+        ...selectedCaseForDetail,
+        caseHistory: updatedHistory,
+      };
+
+      await onUpdateCase(updatedCase);
+      setSelectedCaseForDetail(updatedCase);
+      setTargetStageIdForUpload(null);
+      onShowToast(`Stage document "${docName}" attached successfully!`);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleViewOrDownloadStageDoc = (entry: CaseHistoryEntry) => {
+    if (!entry.documentFile) {
+      onShowToast('No document attached for this stage.');
+      return;
+    }
+    try {
+      const isPdf = entry.documentFile.includes('application/pdf');
+      const win = window.open();
+      if (win) {
+        win.document.write(
+          `<title>${entry.documentName || 'Stage Document'}</title><iframe src="${entry.documentFile}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100vh;" allowfullscreen></iframe>`
+        );
+        return;
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+    const link = document.createElement('a');
+    link.href = entry.documentFile;
+    link.download = entry.documentName || `Stage_Document_${entry.id}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleQuickAddHearing = async () => {
     if (!selectedCaseForDetail) return;
     if (!quickNextHearingDate) {
@@ -581,7 +673,10 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
       businessDate: curToday,
       hearingDate: quickNextHearingDate,
       purpose: quickHearingPurpose,
-      proceedings: quickProceedings.trim() || (quickNoticeDate ? `Notice issued on ${quickNoticeDate}. Posted for ${quickHearingPurpose}.` : `${quickHearingPurpose} recorded on bench.`)
+      proceedings: quickProceedings.trim() || (quickNoticeDate ? `Notice issued on ${quickNoticeDate}. Posted for ${quickHearingPurpose}.` : `${quickHearingPurpose} recorded on bench.`),
+      documentFile: stageFileBase64 || undefined,
+      documentName: stageFileName || undefined,
+      uploadedAt: stageFileBase64 ? curToday : undefined,
     };
 
     const existingHistory = selectedCaseForDetail.caseHistory || [];
@@ -600,7 +695,10 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
     setSelectedCaseForDetail(updatedCase);
     setIsAddingHearingToCase(false);
     setQuickProceedings('');
-    onShowToast('Case hearing schedule and notice record updated successfully!');
+    setStageFileBase64('');
+    setStageFileName('');
+    if (stageFileInputRef.current) stageFileInputRef.current.value = '';
+    onShowToast('Case hearing schedule, stage details & document saved successfully!');
   };
 
   // Official Court Case Details & Hearing History Print Slip (Image 1 & 2 format)
@@ -766,24 +864,26 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
         <div style="margin: 0 0 5px 0; color: #0c2a47; font-size: 11.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.3px;">
           Case History &amp; Proceedings Timeline
         </div>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; border: 1.5px solid #64748b; font-size: 10.5px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; border: 1.5px solid #64748b; font-size: 10px;">
           <thead>
             <tr style="background: #0c2a47; color: white;">
-              <th style="padding: 5px 8px; border: 1px solid #475569; text-align: left; width: 28%; font-weight: 800;">Judge / Presiding Officer</th>
-              <th style="padding: 5px 8px; border: 1px solid #475569; text-align: center; width: 14%; font-weight: 800;">Business Date</th>
-              <th style="padding: 5px 8px; border: 1px solid #475569; text-align: center; width: 14%; font-weight: 800;">Hearing Date</th>
-              <th style="padding: 5px 8px; border: 1px solid #475569; text-align: left; width: 20%; font-weight: 800;">Purpose / Stage</th>
-              <th style="padding: 5px 8px; border: 1px solid #475569; text-align: left; width: 24%; font-weight: 800;">Daily Proceedings / Action</th>
+              <th style="padding: 5px 6px; border: 1px solid #475569; text-align: left; width: 24%; font-weight: 800;">Judge / Presiding Officer</th>
+              <th style="padding: 5px 6px; border: 1px solid #475569; text-align: center; width: 12%; font-weight: 800;">Business Date</th>
+              <th style="padding: 5px 6px; border: 1px solid #475569; text-align: center; width: 12%; font-weight: 800;">Hearing Date</th>
+              <th style="padding: 5px 6px; border: 1px solid #475569; text-align: left; width: 18%; font-weight: 800;">Stage / Purpose</th>
+              <th style="padding: 5px 6px; border: 1px solid #475569; text-align: left; width: 19%; font-weight: 800;">Daily Proceedings</th>
+              <th style="padding: 5px 6px; border: 1px solid #475569; text-align: center; width: 15%; font-weight: 800;">Stage Document</th>
             </tr>
           </thead>
           <tbody>
             ${historyRows.map((h, i) => `
               <tr style="background: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
-                <td style="padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 800; color: #1e293b;">${h.judgeOfficer || 'Revenue Divisional Officer & SDM, Huzurnagar'}</td>
-                <td style="padding: 5px 8px; border: 1px solid #cbd5e1; text-align: center; font-weight: 700; color: #1e40af;">${h.businessDate}</td>
-                <td style="padding: 5px 8px; border: 1px solid #cbd5e1; text-align: center; font-weight: 800; color: #b45309;">${h.hearingDate}</td>
-                <td style="padding: 5px 8px; border: 1px solid #cbd5e1; font-weight: 700; color: #334155;">${h.purpose}</td>
-                <td style="padding: 5px 8px; border: 1px solid #cbd5e1; color: #0f172a; line-height: 1.35;">${h.proceedings || '-'}</td>
+                <td style="padding: 5px 6px; border: 1px solid #cbd5e1; font-weight: 800; color: #1e293b;">${h.judgeOfficer || 'Revenue Divisional Officer & SDM, Huzurnagar'}</td>
+                <td style="padding: 5px 6px; border: 1px solid #cbd5e1; text-align: center; font-weight: 700; color: #1e40af;">${h.businessDate}</td>
+                <td style="padding: 5px 6px; border: 1px solid #cbd5e1; text-align: center; font-weight: 800; color: #b45309;">${h.hearingDate}</td>
+                <td style="padding: 5px 6px; border: 1px solid #cbd5e1; font-weight: 700; color: #334155;">${h.purpose}</td>
+                <td style="padding: 5px 6px; border: 1px solid #cbd5e1; color: #0f172a; line-height: 1.3;">${h.proceedings || '-'}</td>
+                <td style="padding: 5px 6px; border: 1px solid #cbd5e1; text-align: center; font-size: 9px;">${h.documentFile ? `<span style="color: #047857; font-weight: bold;">✔ Attached (${h.documentName || 'PDF'})</span>` : `<span style="color: #94a3b8;">-</span>`}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -1496,6 +1596,15 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
                             <Eye className="w-4 h-4" />
                           </button>
 
+                          {/* Print / Download Case Slip */}
+                          <button
+                            onClick={() => handlePrintSingleCaseSlip(c)}
+                            className="p-1.5 text-slate-500 hover:text-amber-700 rounded-lg hover:bg-amber-100/80 hover:shadow-xs transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                            title="Download Case Status Slip (PDF)"
+                          >
+                            <Download className="w-4 h-4 text-amber-600" />
+                          </button>
+
                           {/* Edit case: Staff and Admin only */}
                           {!isViewer && (
                             <button
@@ -1623,11 +1732,11 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
                   <button
                     type="button"
                     onClick={() => handlePrintSingleCaseSlip(selectedCaseForDetail)}
-                    className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 text-xs shadow-sm transition cursor-pointer"
-                    title="Print Case Status Slip"
+                    className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs shadow-sm transition cursor-pointer"
+                    title="Download Official Case Status Slip (PDF)"
                   >
-                    <Printer className="w-3.5 h-3.5" />
-                    <span>Print Case Sheet</span>
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download PDF Case Slip</span>
                   </button>
                 )}
                 <button
@@ -1805,7 +1914,7 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
                 {!isViewer && isAddingHearingToCase && (
                   <div className="p-4 bg-amber-50/80 border-b-2 border-amber-300 space-y-3">
                     <span className="font-black text-amber-950 text-xs block">
-                      Record Next Hearing Date &amp; Notice Proceedings:
+                      Record Next Hearing Date, Notice Proceedings &amp; Stage Document:
                     </span>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                       <div>
@@ -1854,10 +1963,54 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
                           onClick={handleQuickAddHearing}
                           className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold px-3 py-1.5 rounded text-xs transition cursor-pointer shadow-xs"
                         >
-                          Save Update
+                          Save Update &amp; Stage
                         </button>
                       </div>
                     </div>
+
+                    {/* Stage Document Upload Box */}
+                    <div className="border border-dashed border-amber-400 bg-amber-100/50 p-2.5 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Upload className="w-4 h-4 text-amber-800 shrink-0" />
+                        <div>
+                          <span className="font-bold text-amber-950 text-[11px] block">
+                            Attach Stage Document / Notice Copy (PDF / Image)
+                          </span>
+                          {stageFileName ? (
+                            <span className="text-[10px] font-black text-emerald-800 block">
+                              Selected: {stageFileName}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-600 block">
+                              Optional: Attach summons, interim notice, or proceedings report
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          ref={stageFileInputRef}
+                          accept=".pdf,image/*"
+                          onChange={handleStageFileChange}
+                          className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-[11px] file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-700 cursor-pointer"
+                        />
+                        {stageFileName && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStageFileBase64('');
+                              setStageFileName('');
+                              if (stageFileInputRef.current) stageFileInputRef.current.value = '';
+                            }}
+                            className="text-[10px] text-rose-700 hover:underline font-bold"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
                     <div>
                       <input
                         type="text"
@@ -1870,16 +2023,29 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
                   </div>
                 )}
 
+                {/* Hidden input for uploading doc to existing stage */}
+                <input
+                  type="file"
+                  ref={existingStageFileInputRef}
+                  accept=".pdf,image/*"
+                  className="hidden"
+                  onChange={handleExistingStageFileChange}
+                />
+
                 {/* Case History Table Rows */}
-                <div className="overflow-x-auto max-h-56 overflow-y-auto">
+                <div className="overflow-x-auto max-h-60 overflow-y-auto">
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-slate-100 text-slate-700 border-b border-slate-300">
+                    <thead className="bg-slate-100 text-slate-700 border-b border-slate-300 sticky top-0 z-10">
                       <tr>
-                        <th className="py-2 px-3 font-bold text-[10.5px] w-1/4">Judge / Presiding Officer</th>
-                        <th className="py-2 px-3 font-bold text-[10.5px] text-center w-24">Business on Date</th>
-                        <th className="py-2 px-3 font-bold text-[10.5px] text-center w-24">Hearing Date</th>
-                        <th className="py-2 px-3 font-bold text-[10.5px] w-1/4">Purpose of Hearing</th>
-                        <th className="py-2 px-3 font-bold text-[10.5px]">Daily Court Order / Action</th>
+                        <th className="py-2 px-3 font-bold text-[10.5px] w-1/5">Judge / Presiding Officer</th>
+                        <th className="py-2 px-3 font-bold text-[10.5px] text-center w-20">Business Date</th>
+                        <th className="py-2 px-3 font-bold text-[10.5px] text-center w-20">Hearing Date</th>
+                        <th className="py-2 px-3 font-bold text-[10.5px] w-1/5">Purpose / Stage</th>
+                        <th className="py-2 px-3 font-bold text-[10.5px]">Daily Proceedings</th>
+                        <th className="py-2 px-2.5 font-bold text-[10.5px] text-center w-28">Stage Document</th>
+                        {!isViewer && (
+                          <th className="py-2 px-2 font-bold text-[10.5px] text-center w-20">Actions</th>
+                        )}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1913,21 +2079,49 @@ export const AppealCasesView: React.FC<AppealCasesViewProps> = ({
                           ]
                       ).map((h, i) => (
                         <tr key={h.id || i} className="hover:bg-amber-50/40">
-                          <td className="py-2.5 px-3 font-bold text-slate-800 text-[11px]">
+                          <td className="py-2 px-3 font-bold text-slate-800 text-[11px]">
                             {h.judgeOfficer || 'Revenue Divisional Officer & SDM, Huzurnagar'}
                           </td>
-                          <td className="py-2.5 px-3 font-bold text-blue-900 text-center text-[11px]">
+                          <td className="py-2 px-3 font-bold text-blue-900 text-center text-[11px]">
                             {h.businessDate}
                           </td>
-                          <td className="py-2.5 px-3 font-black text-amber-900 text-center text-[11px]">
+                          <td className="py-2 px-3 font-black text-amber-900 text-center text-[11px]">
                             {h.hearingDate}
                           </td>
-                          <td className="py-2.5 px-3 font-semibold text-slate-800 text-[11px]">
+                          <td className="py-2 px-3 font-semibold text-slate-800 text-[11px]">
                             {h.purpose}
                           </td>
-                          <td className="py-2.5 px-3 text-slate-600 text-[11px]">
+                          <td className="py-2 px-3 text-slate-600 text-[11px]">
                             {h.proceedings || '-'}
                           </td>
+                          <td className="py-2 px-2.5 text-center">
+                            {h.documentFile ? (
+                              <button
+                                type="button"
+                                onClick={() => handleViewOrDownloadStageDoc(h)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-2 py-1 rounded text-[10px] inline-flex items-center gap-1 shadow-xs cursor-pointer"
+                                title={`View/Download ${h.documentName || 'Stage Doc'}`}
+                              >
+                                <FileText className="w-3 h-3" />
+                                <span>{h.documentName ? (h.documentName.length > 10 ? h.documentName.substring(0, 8) + '...' : h.documentName) : 'View Doc'}</span>
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">No File</span>
+                            )}
+                          </td>
+                          {!isViewer && (
+                            <td className="py-2 px-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleUploadDocToExistingStage(h.id)}
+                                className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-bold px-1.5 py-0.5 rounded text-[10px] inline-flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                title="Upload or Replace document for this stage"
+                              >
+                                <Upload className="w-2.5 h-2.5" />
+                                <span>{h.documentFile ? 'Replace' : 'Upload'}</span>
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>

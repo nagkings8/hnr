@@ -1,7 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { BhuFile } from '../../types';
-import { X, Printer, Download } from 'lucide-react';
+import { X, Printer, Download, CheckCircle2 } from 'lucide-react';
 import { RDO_LOGO_BASE64 } from '../../utils/logoBase64';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface PrintSlipModalProps {
   isOpen: boolean;
@@ -17,41 +19,98 @@ export const PrintSlipModal: React.FC<PrintSlipModalProps> = ({
   onShowToast,
 }) => {
   const slipRef = useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   if (!isOpen || !file) return null;
 
-  const handlePrint = () => {
+  const handleDownloadPdf = async () => {
+    if (!slipRef.current) return;
+    setIsGenerating(true);
+
     try {
-      window.print();
-    } catch (err) {
-      console.warn('Print error:', err);
-      onShowToast("Please use 'Download PDF' to save and print this slip.");
+      const element = slipRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2.5,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const margin = 10;
+      const printableWidth = pageWidth - margin * 2;
+      const printableHeight = (canvas.height * printableWidth) / canvas.width;
+
+      // Fit within one page if slightly over
+      let finalWidth = printableWidth;
+      let finalHeight = printableHeight;
+      if (finalHeight > pageHeight - margin * 2) {
+        const scale = (pageHeight - margin * 2) / finalHeight;
+        finalHeight = pageHeight - margin * 2;
+        finalWidth = finalWidth * scale;
+      }
+
+      const x = margin + (printableWidth - finalWidth) / 2;
+      const y = margin;
+
+      pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+      pdf.save(`RDO_File_Tracking_Slip_${file.appNumber}.pdf`);
+      onShowToast(`Official Slip for Application #${file.appNumber} downloaded as PDF!`);
+    } catch (err: any) {
+      console.error('Slip PDF error:', err);
+      onShowToast('Error creating PDF slip. Please try again.');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const handleDownloadPdf = () => {
-    if (!slipRef.current) return;
-    if (!window.html2canvas || !window.jspdf) {
-      onShowToast('PDF generation libraries are still loading. Please wait.');
-      return;
+  const handlePrint = () => {
+    // Generate clean print window with only the slip HTML
+    try {
+      if (!slipRef.current) return;
+      const slipHtml = slipRef.current.outerHTML;
+      const printWindow = window.open('', '_blank', 'width=800,height=900');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Official Tracking Slip - ${file.appNumber}</title>
+              <style>
+                @page { size: A4 portrait; margin: 10mm; }
+                body { margin: 0; padding: 0; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+                * { box-sizing: border-box; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #000000; }
+              </style>
+            </head>
+            <body>
+              ${slipHtml}
+              <script>
+                window.onload = function() {
+                  window.focus();
+                  window.print();
+                  setTimeout(function() { window.close(); }, 500);
+                };
+              </script>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+      } else {
+        window.print();
+      }
+    } catch (err) {
+      console.warn('Print error:', err);
+      handleDownloadPdf();
     }
-
-    window
-      .html2canvas(slipRef.current, { scale: 2.2, backgroundColor: '#ffffff', useCORS: true, allowTaint: true })
-      .then((canvas: HTMLCanvasElement) => {
-        const imgData = canvas.toDataURL('image/png');
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth() - 20;
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight);
-        pdf.save(`RDO_Slip_${file.appNumber}.pdf`);
-        onShowToast('PDF slip downloaded successfully.');
-      })
-      .catch((err: any) => {
-        console.error('Slip PDF error:', err);
-        onShowToast('Error creating PDF slip.');
-      });
   };
 
   return (
@@ -59,23 +118,29 @@ export const PrintSlipModal: React.FC<PrintSlipModalProps> = ({
       <div className="bg-white border border-slate-200 rounded-xl shadow-2xl max-w-3xl w-full overflow-hidden my-6">
         {/* Controls Bar */}
         <div className="bg-[#061122] text-white px-5 py-3 flex justify-between items-center border-b-2 border-amber-500">
-          <h3 className="font-extrabold text-sm text-white">Official File Tracking Slip</h3>
+          <div className="flex items-center gap-2">
+            <span className="bg-amber-500 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded tracking-wider uppercase">
+              BHU BHARATI
+            </span>
+            <h3 className="font-extrabold text-sm text-white">Official File Tracking Slip</h3>
+          </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={handlePrint}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded text-xs flex items-center gap-1 transition cursor-pointer"
+              onClick={handleDownloadPdf}
+              disabled={isGenerating}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition cursor-pointer shadow-sm disabled:opacity-50"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print Now</span>
+              <Download className="w-4 h-4" />
+              <span>{isGenerating ? 'Generating PDF...' : 'Download PDF'}</span>
             </button>
             <button
-              onClick={handleDownloadPdf}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded text-xs flex items-center gap-1 transition cursor-pointer"
+              onClick={handlePrint}
+              className="bg-slate-700 hover:bg-slate-600 text-white font-semibold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download PDF</span>
+              <Printer className="w-3.5 h-3.5 text-slate-300" />
+              <span>Print Slip</span>
             </button>
-            <button onClick={onClose} className="text-slate-400 hover:text-white transition cursor-pointer">
+            <button onClick={onClose} className="text-slate-400 hover:text-white transition cursor-pointer ml-1">
               <X className="w-5 h-5" />
             </button>
           </div>

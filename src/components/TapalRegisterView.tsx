@@ -11,6 +11,7 @@ interface TapalRegisterViewProps {
   initialOutwardSentTo?: string;
   currentUser?: StaffUser | null;
   onNewInward: () => void;
+  onEditInward?: (tapal: InwardTapal) => void;
   onNewOutward: (linkedInwardId?: number) => void;
   onUpdateInwardStatus: (tapal: InwardTapal) => void;
   onViewInwardPdf: (tapal: InwardTapal) => void;
@@ -26,6 +27,7 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
   initialOutwardSentTo = '',
   currentUser,
   onNewInward,
+  onEditInward,
   onNewOutward,
   onUpdateInwardStatus,
   onViewInwardPdf,
@@ -118,8 +120,8 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
         <th style="background: #164875; color: #fff;">Received Date</th>
         <th style="background: #164875; color: #fff;">Sender / Office</th>
         <th style="background: #164875; color: #fff;">Mandal</th>
+        <th style="background: #164875; color: #fff;">Revenue Village</th>
         <th style="background: #164875; color: #fff;">Subject / Particulars</th>
-        <th style="background: #164875; color: #fff;">Assigned Seat</th>
         <th style="background: #164875; color: #fff;">Current Status</th>
       </tr>
     `;
@@ -131,8 +133,8 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
         <td style="text-align: center; border: 1px solid #94a3b8; padding: 5px;">${t.receivedDate}</td>
         <td style="border: 1px solid #94a3b8; padding: 5px;">${t.sender}</td>
         <td style="border: 1px solid #94a3b8; padding: 5px;">${t.mandal || 'GENERAL'}</td>
+        <td style="border: 1px solid #94a3b8; padding: 5px;">${t.village || 'General / Division'}</td>
         <td style="border: 1px solid #94a3b8; padding: 5px;">${t.subject}</td>
-        <td style="border: 1px solid #94a3b8; padding: 5px;">${t.assignedSeat || '-'}</td>
         <td style="text-align: center; font-weight: bold; border: 1px solid #94a3b8; padding: 5px;">${t.status}</td>
       </tr>
     `).join('');
@@ -504,8 +506,8 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
                 <th className="py-2.5 px-3 border-r border-slate-200">Received Date</th>
                 <th className="py-2.5 px-3 border-r border-slate-200">Sender / Office</th>
                 <th className="py-2.5 px-3 border-r border-slate-200">Mandal</th>
+                <th className="py-2.5 px-3 border-r border-slate-200">Revenue Village</th>
                 <th className="py-2.5 px-3 border-r border-slate-200">Subject / Particulars</th>
-                <th className="py-2.5 px-3 border-r border-slate-200">Assigned Seat</th>
                 <th className="py-2.5 px-3 border-r border-slate-200">Status</th>
                 <th className="py-2.5 px-3 border-r border-slate-200 text-center">Document</th>
                 <th className="py-2.5 px-3 text-center">Actions</th>
@@ -528,18 +530,26 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
                       {tapal.receivedDate}
                     </td>
                     <td className="py-2.5 px-3 font-medium text-slate-800 border-r border-slate-200">
-                      {tapal.sender}
+                      <div>{tapal.sender}</div>
+                      {tapal.returnHistory && tapal.returnHistory.length > 0 && (
+                        <div className="text-[10px] text-amber-700 font-bold mt-0.5">
+                          ↺ Returned: {tapal.returnHistory[tapal.returnHistory.length - 1].from}
+                        </div>
+                      )}
                     </td>
                     <td className="py-2.5 px-3 text-slate-700 border-r border-slate-200">
                       {tapal.mandal}
                     </td>
-                    <td className="py-2.5 px-3 text-slate-800 border-r border-slate-200">
-                      {tapal.subject}
-                    </td>
                     <td className="py-2.5 px-3 border-r border-slate-200">
-                      <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700">
-                        {tapal.seat || '-'}
+                      <span className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-800">
+                        {tapal.village || 'General / Division'}
                       </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-slate-800 border-r border-slate-200">
+                      <div>{tapal.subject}</div>
+                      {tapal.remarks && (
+                        <div className="text-[10.5px] text-slate-500 italic mt-0.5">Note: {tapal.remarks}</div>
+                      )}
                     </td>
                     <td className="py-2.5 px-3 border-r border-slate-200">
                       <span
@@ -569,11 +579,12 @@ export const TapalRegisterView: React.FC<TapalRegisterViewProps> = ({
                         {!isViewer && (
                           <>
                             <button
-                              onClick={() => onUpdateInwardStatus(tapal)}
-                              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-2 py-1 rounded text-[11px] transition cursor-pointer shadow-xs"
-                              title="Update Status"
+                              onClick={() => (onEditInward ? onEditInward(tapal) : onUpdateInwardStatus(tapal))}
+                              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-2 py-1 rounded text-[11px] inline-flex items-center gap-1 transition cursor-pointer shadow-xs"
+                              title="Edit Inward / Update Returned File Details"
                             >
-                              Update
+                              <RefreshCw className="w-2.5 h-2.5" />
+                              <span>Edit / Return</span>
                             </button>
                             <button
                               onClick={() => onNewOutward(tapal.id)}

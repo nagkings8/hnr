@@ -1,6 +1,6 @@
 import React from 'react';
 import { BhuFile, InwardTapal, OutwardDespatch, StaffUser, AppealCase } from '../types';
-import { FolderOpen, Mail, ArrowRight, PlusCircle, Send, Printer, Scale, FileSpreadsheet, Clock, CheckCircle2, AlertCircle, MapPin } from 'lucide-react';
+import { FolderOpen, Mail, ArrowRight, PlusCircle, Send, Printer, Scale, FileSpreadsheet, Clock, CheckCircle2, AlertCircle, MapPin, Activity, Sparkles } from 'lucide-react';
 import { ActiveTab } from './Navigation';
 import { printTableReport } from '../utils/printReport';
 import { DEFAULT_SADABAINAMA_ABSTRACT } from '../data/sadabainamaData';
@@ -280,6 +280,72 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
+      {/* ============================================================ */}
+      {/* EXECUTIVE OPERATIONS QUICK ACTION COMMAND HUB */}
+      {/* ============================================================ */}
+      <div className="bg-gradient-to-r from-white via-slate-50 to-white backdrop-blur-md rounded-2xl border border-slate-200/90 p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-xs shadow-emerald-400" />
+          <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
+            Quick Actions &amp; Navigation
+          </span>
+          <span className="text-[11px] text-slate-500 hidden md:inline">
+            • Fast entry and registry access
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {!isViewer && (
+            <>
+              <button
+                onClick={onNewFile}
+                className="bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200/90 text-xs font-extrabold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                title="Create New Bhu Bharati File Entry"
+              >
+                <FolderOpen className="w-3.5 h-3.5" />
+                <span>+ Bhu File</span>
+              </button>
+
+              <button
+                onClick={onNewInward}
+                className="bg-amber-50 hover:bg-amber-500 text-amber-900 hover:text-slate-950 border border-amber-200/90 text-xs font-extrabold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                title="Log New Inward Tapal Letter"
+              >
+                <Mail className="w-3.5 h-3.5" />
+                <span>+ Inward Tapal</span>
+              </button>
+
+              <button
+                onClick={onNewOutward}
+                className="bg-purple-50 hover:bg-purple-600 text-purple-700 hover:text-white border border-purple-200/90 text-xs font-extrabold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                title="Despatch Outward Letter"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>+ Outward</span>
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => onNavigate('appealCasesTab')}
+            className="bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200/90 text-xs font-extrabold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            title="Open RDO Revenue Court Cause List"
+          >
+            <Scale className="w-3.5 h-3.5" />
+            <span>Court Cause List</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('sadabainamaTab')}
+            className="bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200/90 text-xs font-extrabold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            title="Open Sadabainama Abstract & Reports"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Sadabainama Abstract</span>
+          </button>
+        </div>
+      </div>
+
       {/* Portal Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Portal 1: Bhu Bharati */}
@@ -436,6 +502,47 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
+        {/* Visual Progress Breakdown Bar */}
+        <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl p-3.5 mb-5 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between text-xs font-bold text-slate-700 mb-2 gap-2">
+            <span className="flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-blue-600" />
+              <span>Division File Movement &amp; Resolution Ratio</span>
+            </span>
+            <span className="text-[11px] text-slate-500">
+              Completed: <strong className="text-emerald-700 font-black">{completedBhu}</strong> ({totalBhu ? Math.round((completedBhu / totalBhu) * 100) : 0}%) • Under Active Process: <strong className="text-blue-900 font-black">{totalBhu - completedBhu}</strong>
+            </span>
+          </div>
+          <div className="w-full h-3 bg-slate-200/90 rounded-full overflow-hidden flex shadow-inner">
+            <div
+              style={{ width: `${totalBhu ? (completedBhu / totalBhu) * 100 : 0}%` }}
+              className="bg-emerald-500 h-full transition-all duration-500"
+              title={`Completed: ${completedBhu}`}
+            />
+            <div
+              style={{ width: `${totalBhu ? (forwardedBhu / totalBhu) * 100 : 0}%` }}
+              className="bg-sky-500 h-full transition-all duration-500"
+              title={`Forwarded to Collectorate: ${forwardedBhu}`}
+            />
+            <div
+              style={{ width: `${totalBhu ? (pendingBhu / totalBhu) * 100 : 0}%` }}
+              className="bg-amber-500 h-full transition-all duration-500"
+              title={`Pending at RDO: ${pendingBhu}`}
+            />
+            <div
+              style={{ width: `${totalBhu ? ((returnedBhu + returnedCollBhu) / totalBhu) * 100 : 0}%` }}
+              className="bg-rose-500 h-full transition-all duration-500"
+              title={`Returned/Clarification: ${returnedBhu + returnedCollBhu}`}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-3 mt-2.5 text-[11px] font-semibold text-slate-600">
+            <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Completed ({completedBhu})</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-sky-500" /> Collectorate Review ({forwardedBhu})</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Pending at RDO ({pendingBhu})</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Returned / Clarification ({returnedBhu + returnedCollBhu})</span>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Card 1: Total Bhu Bharati Files */}
           <div
@@ -572,6 +679,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </button>
               </>
             )}
+          </div>
+        </div>
+
+        {/* Tapal Inward vs Outward Progress Bar */}
+        <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl p-3.5 mb-5 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between text-xs font-bold text-slate-700 mb-2 gap-2">
+            <span className="flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-amber-600" />
+              <span>Inward Correspondence Resolution Rate</span>
+            </span>
+            <span className="text-[11px] text-slate-500">
+              Disposed: <strong className="text-emerald-700 font-black">{disposedInward}</strong> ({totalInward ? Math.round((disposedInward / totalInward) * 100) : 0}%) • Under Scrutiny: <strong className="text-amber-800 font-black">{scrutinyInward}</strong>
+            </span>
+          </div>
+          <div className="w-full h-3 bg-slate-200/90 rounded-full overflow-hidden flex shadow-inner">
+            <div
+              style={{ width: `${totalInward ? (disposedInward / totalInward) * 100 : 0}%` }}
+              className="bg-emerald-500 h-full transition-all duration-500"
+              title={`Disposed: ${disposedInward}`}
+            />
+            <div
+              style={{ width: `${totalInward ? (scrutinyInward / totalInward) * 100 : 0}%` }}
+              className="bg-amber-400 h-full transition-all duration-500"
+              title={`Under Scrutiny: ${scrutinyInward}`}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-3 mt-2.5 text-[11px] font-semibold text-slate-600">
+            <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Disposed ({disposedInward})</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-400" /> Under Scrutiny ({scrutinyInward})</span>
+            <span className="inline-flex items-center gap-1 ml-auto text-slate-500 font-medium">Outwards to MROs: <strong className="text-slate-800 font-bold">{outwardToMro}</strong> • to Collectorate: <strong className="text-slate-800 font-bold">{outwardToCollectorate}</strong></span>
           </div>
         </div>
 
@@ -811,6 +948,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Scale className="w-4 h-4" />
               <span>View Court Register</span>
             </button>
+          </div>
+        </div>
+
+        {/* Appeal Cases Disposal Progress Bar */}
+        <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl p-3.5 mb-5 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between text-xs font-bold text-slate-700 mb-2 gap-2">
+            <span className="flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Revenue Court Case Status Breakdown</span>
+            </span>
+            <span className="text-[11px] text-slate-500">
+              Final Orders Issued: <strong className="text-emerald-700 font-black">{finalOrdersCount}</strong> ({totalAppeals ? Math.round((finalOrdersCount / totalAppeals) * 100) : 0}%) • Active Hearings: <strong className="text-amber-800 font-black">{hearingAppealsCount}</strong>
+            </span>
+          </div>
+          <div className="w-full h-3 bg-slate-200/90 rounded-full overflow-hidden flex shadow-inner">
+            <div
+              style={{ width: `${totalAppeals ? (finalOrdersCount / totalAppeals) * 100 : 0}%` }}
+              className="bg-emerald-500 h-full transition-all duration-500"
+              title={`Final Orders: ${finalOrdersCount}`}
+            />
+            <div
+              style={{ width: `${totalAppeals ? (hearingAppealsCount / totalAppeals) * 100 : 0}%` }}
+              className="bg-amber-400 h-full transition-all duration-500"
+              title={`Under Hearing: ${hearingAppealsCount}`}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-3 mt-2.5 text-[11px] font-semibold text-slate-600">
+            <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Final Orders Pronounced ({finalOrdersCount})</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-400" /> Under Hearing / Arguments ({hearingAppealsCount})</span>
+            <span className="inline-flex items-center gap-1 ml-auto text-indigo-800 font-bold">RDO Huzurnagar Court Jurisdiction</span>
           </div>
         </div>
 
